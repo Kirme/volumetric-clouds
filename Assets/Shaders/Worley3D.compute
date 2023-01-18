@@ -1,0 +1,45 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+int _TextureResolution;
+int _CellResolution;
+int _CellCount;
+
+StructuredBuffer<float3> _Points;
+RWTexture3D<float4> _Result;
+
+int3 WrapCell(int3 cell) {
+    int3 newCell = int3(
+        fmod(cell.x, _CellCount),
+        fmod(cell.y, _CellCount),
+        fmod(cell.z, _CellCount)
+    );
+    
+    return newCell;
+}
+
+[numthreads(8,8,8)]
+void CSMain (uint3 id : SV_DispatchThreadID) {
+    float3 pos = float3(id.x, id.y, id.z);
+    int3 cellCoord = floor(pos / _CellResolution);
+    float3 posInCell = float3(pos / _CellResolution - cellCoord);
+    
+    float minDistance = 1.0;
+    
+    for (int x = -1; x <= 1; x++) {
+        for (int y = -1; y <= 1; y++) {
+            for (int z = -1; z <= 1; z++) {
+                int3 currentCell = cellCoord + int3(x, y, z);
+                int3 wrappedCell = WrapCell(currentCell);
+                
+                int cellIndex = wrappedCell.x + _CellCount * (wrappedCell.y + wrappedCell.z * _CellCount);
+                
+                float3 pointOffset = currentCell + _Points[cellIndex];
+                minDistance = min(minDistance, distance(cellCoord + posInCell, pointOffset));
+            }
+        }
+    }
+
+    float invertedMin = 1.0 - minDistance;
+    _Result[id.xyz] = float4(invertedMin, invertedMin, invertedMin, 1);
+}
