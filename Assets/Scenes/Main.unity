@@ -331,9 +331,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   renderTexture: {fileID: 0}
+  computeShader: {fileID: 7200000, guid: 39e5879dc90c3124695d749f41b2a508, type: 3}
   textureResolution: 128
   cellCount: 8
-  computeShader: {fileID: 7200000, guid: 39e5879dc90c3124695d749f41b2a508, type: 3}
+  seed: 5
+  noiseThreshold: 0
 --- !u!4 &1216836808
 Transform:
   m_ObjectHideFlags: 0

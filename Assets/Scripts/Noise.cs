@@ -7,38 +7,62 @@ using Random = UnityEngine.Random;
 public class Noise : MonoBehaviour {
     [SerializeField] private RenderTexture renderTexture;
 
+    [SerializeField] private ComputeShader computeShader;
+
+    [Header("Worley Parameters")]
     [SerializeField] private int textureResolution = 128;
     [SerializeField] int cellCount = 4;
+    [SerializeField] int seed = 5;
 
-    [SerializeField] private ComputeShader computeShader;
+    [Range(0, 1)]
+    [SerializeField] private float noiseThreshold = 0;
+
     private ComputeBuffer computeBuffer;
-
     private int threads = 8;
 
     void Start() {
         GenerateNoise();
     }
 
-    
     private void GenerateNoise() {
+        // Initialization
         CreateRenderTexture();
-
-        Random.InitState(5);
-
-        CreatePointsBuffer();
-
+        Random.InitState(seed);
+        
         computeShader.SetInt("_TextureResolution", textureResolution);
-        computeShader.SetInt("_CellResolution", textureResolution / cellCount);
-        computeShader.SetInt("_CellCount", cellCount);
-        computeShader.SetBuffer(0, "_Points", computeBuffer);
         computeShader.SetTexture(0, "_Result", renderTexture);
+        computeShader.SetFloat("_Threshold", noiseThreshold);
 
-        computeShader.Dispatch(0, threads, threads, threads);
+        // Run compute shader once for each channel (rgba), w. increasing freq
+        int currentCellCount = cellCount;
+        for (int i = 0; i < 4; i++) {
+            DispatchShader(i, currentCellCount);
+            if (i != 3)
+                currentCellCount *= 2;
+        }
 
         computeBuffer.Release();
         computeBuffer = null;
     }
 
+    // Dispatch the compute shader and update relevant parameters
+    private void DispatchShader(int channel, int ccc) {
+        UpdateParameters(channel, ccc);
+
+        computeShader.Dispatch(0, threads, threads, threads);
+    }
+
+    // Update parameters that might change between channels
+    private void UpdateParameters(int channel, int ccc) {
+        CreatePointsBuffer(ccc);
+        computeShader.SetBuffer(0, "_Points", computeBuffer);
+
+        computeShader.SetInt("_CellCount", ccc);
+        computeShader.SetInt("_CellResolution", textureResolution / ccc);
+        computeShader.SetInt("_Channel", channel);
+    }
+
+    // Create the render texture
     private void CreateRenderTexture() {
         if (renderTexture != null)
             renderTexture.Release();
@@ -56,8 +80,9 @@ public class Noise : MonoBehaviour {
         renderTexture.Create();
     }
 
-    private void CreatePointsBuffer() {
-        int numPoints = cellCount * cellCount * cellCount;
+    // Create the buffer of points that determine worley noise
+    private void CreatePointsBuffer(int currentCellCount) {
+        int numPoints = currentCellCount * currentCellCount * currentCellCount;
         Vector3[] points = new Vector3[numPoints];
 
         for (int i = 0; i < numPoints; i++) {
