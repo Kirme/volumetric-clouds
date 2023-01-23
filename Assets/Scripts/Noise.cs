@@ -93,4 +93,8 @@ public class Noise : MonoBehaviour {
         computeBuffer = new ComputeBuffer(numPoints, sizeof(float) * 3, ComputeBufferType.Structured);
         computeBuffer.SetData(points);
     }
+
+    public RenderTexture GetNoise() {
+        return renderTexture;
+    }
 }
