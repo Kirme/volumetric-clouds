@@ -29,6 +29,20 @@ Shader "Hidden/RayMarch" {
 
             sampler2D _CameraDepthTexture;
 
+            // Parameters
+            float3 boundsMin;
+            float3 boundsMax;
+
+            float3 cloudOffset;
+            float cloudScale;
+
+            float densityThreshold;
+            float densityMultiplier;
+            int numSteps;
+
+            Texture3D<float4> ShapeNoise;
+            SamplerState samplerShapeNoise;
+
             // Function adapted from Sebastian Lague https://youtu.be/4QOcCGI6xOU
             // Finds entry and exit point of ray to a box
             float2 rayBoxDist(float3 bmin, float3 bmax, float3 rayOrigin, float3 rayDir) {
@@ -46,6 +60,25 @@ Shader "Hidden/RayMarch" {
                 return float2(dstToBox, dstInsideBox);
             }
 
+            // Function adapted from Fredrik Häggström http://www.diva-portal.org/smash/record.jsf?pid=diva2%3A1223894&dswid=-8658
+            // Remaps v from one range to another
+            float remap(float v, float lOrig, float rOrig, float lNew, float rNew) {
+                float nom = (v - lOrig) * (rNew - lNew);
+                float denom = rOrig - lOrig;
+
+                return lNew + nom / denom;
+            }
+
+            // Function adapted from Sebastian Lague https://youtu.be/4QOcCGI6xOU
+            // Samples cloud density at given position
+            float sampleDensity(float3 position) {
+                float3 newPos = position * cloudScale * 0.001 + cloudOffset * 0.01;
+                float4 shape = ShapeNoise.SampleLevel(samplerShapeNoise, newPos, 0);
+
+                float density = max(0, shape.r - densityThreshold) * densityMultiplier;
+                return density;
+            }
+
             v2f vert (appdata v) {
                 v2f o;
                 o.vertex = UnityObjectToClipPos(v.vertex);
@@ -57,29 +90,47 @@ Shader "Hidden/RayMarch" {
                 return o;
             }
 
-            float3 boundsMin;
-            float3 boundsMax;
-
-            Texture3D<float4> shapeNoise;
-
             fixed4 frag (v2f i) : SV_Target {
                 fixed4 col = tex2D(_MainTex, i.uv);
 
+                // Get ray origin and direction
                 float3 rayOrigin = _WorldSpaceCameraPos;
                 float3 rayDir = normalize(i.viewVector);
 
+                // Gets depth based on camera depth texture
                 float nlDepth = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, i.uv);
                 float depth = LinearEyeDepth(nlDepth) * length(i.viewVector);
 
+                // Get distance to and in cloud box
                 float2 rayBox = rayBoxDist(boundsMin, boundsMax, rayOrigin, rayDir);
                 float distToBox = rayBox.x;
                 float distInBox = rayBox.y;
 
+                // Return if not hit box
                 bool rayHit = distInBox > 0 && distToBox < depth;
-                if (rayHit)
-                    col = 0;
+                if (!rayHit)
+                    return col;
 
-                return col;
+                float distTravelled = 0; // Distance travelled in box
+                float stepSize = distInBox / numSteps; // Step size based on number of steps
+                float limit = min(depth - distToBox, distInBox);
+
+                float totDensity = 0;
+                while (distTravelled < limit) {
+                    // Current position on ray
+                    float3 pos = rayOrigin + rayDir * (distToBox + distTravelled);
+                    
+                    // Increase total density
+                    totDensity += sampleDensity(pos) * stepSize;
+
+                    // Continue along ray
+                    distTravelled += stepSize;
+                }
+
+                // Calculate transmittance, how much light gets through based on density
+                float transmittance = exp(-totDensity);
+
+                return col * transmittance + (1 - transmittance);
             }
             ENDCG
         }

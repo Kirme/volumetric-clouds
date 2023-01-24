@@ -12,27 +12,21 @@ float _Threshold;
 StructuredBuffer<float3> _Points; // List of points to which we calculate distance
 RWTexture3D<float4> _Result;
 
-// Wrap a cell so that it is within 0 to cell count
-int3 WrapCell(int3 cell) {
-    int3 newCell = int3(
-        fmod(cell.x, _CellCount),
-        fmod(cell.y, _CellCount),
-        fmod(cell.z, _CellCount)
-    );
-    
-    return newCell;
-}
-
 // Get the result if we are in the right color channel
-float GetResult(float invertedMin, float def, int ch) {
-    if (_Channel == ch)
-        return invertedMin;
-    else
-        return def;
+float4 GetResult(float invertedMin) {
+    float4 res = float4(
+        _Channel == 0 ? invertedMin : 0,
+        _Channel == 1 ? invertedMin : 0,
+        _Channel == 2 ? invertedMin : 0,
+        _Channel == 3 ? invertedMin : 0
+    );
+
+    return res;
 }
 
 // Set the result to the correct channel
-void SetResult(float min, uint3 id) {
+void SetResult(float min, uint3 id)
+{
     // Want white spots w. black background
     float invertedMin = 1.0 - min;
     
@@ -41,19 +35,33 @@ void SetResult(float min, uint3 id) {
         invertedMin = 0.0;
     
     // Set result to the correct channel
-    _Result[id.xyz] = float4(
-        GetResult(invertedMin, _Result[id.xyz].r, 0), 
-        GetResult(invertedMin, _Result[id.xyz].g, 1),
-        GetResult(invertedMin, _Result[id.xyz].b, 2),
-        GetResult(invertedMin, _Result[id.xyz].a, 3)
-    );
+    _Result[id] += GetResult(invertedMin);
+}
+
+int WrapInt(int i) {
+    if (i < 0)
+        return i + _CellCount;
+    if (i >= _CellCount)
+        return i - _CellCount;
+    return i;
+}
+
+int3 WrapCell(int3 cell) {
+    cell.x = WrapInt(cell.x);
+    cell.y = WrapInt(cell.y);
+    cell.z = WrapInt(cell.z);
+    
+    return cell;
 }
 
 [numthreads(8,8,8)]
 void CSMain (uint3 id : SV_DispatchThreadID) {
-    float3 pos = float3(id.x, id.y, id.z); // World position
-    int3 cellCoord = floor(pos / _CellResolution); // Cell identifier
-    float3 posInCell = float3(pos / _CellResolution - cellCoord); // Offset from cell
+    float3 pos = float3(id); // World position
+    
+    float3 cellDiv = pos / (float) _CellResolution;
+    
+    float3 cellCoord = floor(cellDiv); // Cell identifier
+    float3 posInCell = float3(cellDiv - cellCoord); // Offset from cell
     
     float minDistance = 1.0; // Holds minimum distance to a feature point
     
@@ -62,6 +70,7 @@ void CSMain (uint3 id : SV_DispatchThreadID) {
         for (int y = -1; y <= 1; y++) {
             for (int z = -1; z <= 1; z++) {
                 int3 currentCell = cellCoord + int3(x, y, z); // Cell we are looking at
+                
                 int3 wrappedCell = WrapCell(currentCell); // Cell when wrapped around
                 
                 // Get the index of the cell in the points list
@@ -71,11 +80,12 @@ void CSMain (uint3 id : SV_DispatchThreadID) {
                 float3 pointOffset = currentCell + _Points[cellIndex];
                 
                 // Check if distance to point is smallest
-                minDistance = min(minDistance, distance(cellCoord + posInCell, pointOffset));
+                float dist = distance(cellCoord + posInCell, pointOffset);
+                minDistance = min(minDistance, dist);
             }
         }
     }
-
+    
     // Set color based on smallest distance to point
     SetResult(minDistance, id);
 }

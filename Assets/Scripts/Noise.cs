@@ -4,7 +4,10 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using Random = UnityEngine.Random;
 
+[ExecuteInEditMode]
 public class Noise : MonoBehaviour {
+    private const int threadGroupSize = 8;
+
     [SerializeField] private RenderTexture renderTexture;
 
     [SerializeField] private ComputeShader computeShader;
@@ -18,13 +21,21 @@ public class Noise : MonoBehaviour {
     [SerializeField] private float noiseThreshold = 0;
 
     private ComputeBuffer computeBuffer;
-    private int threads = 8;
 
-    void Start() {
-        GenerateNoise();
+    private bool needsUpdate = true;
+
+    void Update() {
+        if (needsUpdate) {
+            needsUpdate = false;
+            GenerateNoise();
+        }
     }
 
-    private void GenerateNoise() {
+    private void OnValidate() {
+        needsUpdate = true;
+    }
+
+    public void GenerateNoise() {
         // Initialization
         CreateRenderTexture();
         Random.InitState(seed);
@@ -49,7 +60,8 @@ public class Noise : MonoBehaviour {
     private void DispatchShader(int channel, int ccc) {
         UpdateParameters(channel, ccc);
 
-        computeShader.Dispatch(0, threads, threads, threads);
+        int numGroups = Mathf.CeilToInt(textureResolution / (float) threadGroupSize);
+        computeShader.Dispatch(0, numGroups, numGroups, numGroups);
     }
 
     // Update parameters that might change between channels
@@ -82,12 +94,17 @@ public class Noise : MonoBehaviour {
 
     // Create the buffer of points that determine worley noise
     private void CreatePointsBuffer(int currentCellCount) {
+        if (computeBuffer != null) {
+            computeBuffer.Release();
+            computeBuffer = null;
+        }
+
         int numPoints = currentCellCount * currentCellCount * currentCellCount;
-        Vector3[] points = new Vector3[numPoints];
+        List<Vector3> points = new List<Vector3>();
 
         for (int i = 0; i < numPoints; i++) {
             Vector3 point = new Vector3(Random.value, Random.value, Random.value);
-            points[i] = point;
+            points.Add(point);
         }
 
         computeBuffer = new ComputeBuffer(numPoints, sizeof(float) * 3, ComputeBufferType.Structured);
