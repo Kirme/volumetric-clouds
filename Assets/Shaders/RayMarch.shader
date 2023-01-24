@@ -69,13 +69,21 @@ Shader "Hidden/RayMarch" {
                 return lNew + nom / denom;
             }
 
+            float combineNoise(float4 shape) {
+                float lOrig = shape.g * 0.625 + shape.b * 0.25 + shape.a * 0.125 - 1;
+
+                return remap(shape.r, lOrig, 1, 0, 1);
+            }
+
             // Function adapted from Sebastian Lague https://youtu.be/4QOcCGI6xOU
             // Samples cloud density at given position
             float sampleDensity(float3 position) {
                 float3 newPos = position * cloudScale * 0.001 + cloudOffset * 0.01;
                 float4 shape = ShapeNoise.SampleLevel(samplerShapeNoise, newPos, 0);
 
-                float density = max(0, shape.r - densityThreshold) * densityMultiplier;
+                float combined = combineNoise(shape);
+
+                float density = max(0, combined - densityThreshold) * densityMultiplier;
                 return density;
             }
 

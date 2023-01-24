@@ -18,7 +18,7 @@ float4 GetResult(float invertedMin) {
         _Channel == 0 ? invertedMin : 0,
         _Channel == 1 ? invertedMin : 0,
         _Channel == 2 ? invertedMin : 0,
-        _Channel == 3 ? invertedMin : 0
+        /*_Channel == 3 ? invertedMin : 0*/ 1
     );
 
     return res;
