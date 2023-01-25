@@ -12,6 +12,7 @@ Shader "Hidden/RayMarch" {
             #pragma fragment frag
 
             #include "UnityCG.cginc"
+            #include "UnityLightingCommon.cginc"
 
             struct appdata {
                 float4 vertex : POSITION;
@@ -29,6 +30,9 @@ Shader "Hidden/RayMarch" {
 
             sampler2D _CameraDepthTexture;
 
+            Texture3D<float4> ShapeNoise;
+            SamplerState samplerShapeNoise;
+
             // Parameters
             float3 boundsMin;
             float3 boundsMax;
@@ -40,12 +44,14 @@ Shader "Hidden/RayMarch" {
             float densityMultiplier;
             int numSteps;
 
-            Texture3D<float4> ShapeNoise;
-            SamplerState samplerShapeNoise;
+            // Lighting parameters
+            float lightAbsorption;
+            int numSunSteps;
+            float3 sunPosition;
 
             // Function adapted from Sebastian Lague https://youtu.be/4QOcCGI6xOU
             // Finds entry and exit point of ray to a box
-            float2 rayBoxDist(float3 bmin, float3 bmax, float3 rayOrigin, float3 rayDir) {
+            float2 RayBoxDist(float3 bmin, float3 bmax, float3 rayOrigin, float3 rayDir) {
                 float3 t0 = (bmin - rayOrigin) / rayDir;
                 float3 t1 = (bmax - rayOrigin) / rayDir;
 
@@ -62,29 +68,84 @@ Shader "Hidden/RayMarch" {
 
             // Function adapted from Fredrik Häggström http://www.diva-portal.org/smash/record.jsf?pid=diva2%3A1223894&dswid=-8658
             // Remaps v from one range to another
-            float remap(float v, float lOrig, float rOrig, float lNew, float rNew) {
+            float Remap(float v, float lOrig, float rOrig, float lNew, float rNew) {
                 float nom = (v - lOrig) * (rNew - lNew);
                 float denom = rOrig - lOrig;
 
                 return lNew + nom / denom;
             }
 
-            float combineNoise(float4 shape) {
+            float CombineNoise(float4 shape) {
                 float lOrig = shape.g * 0.625 + shape.b * 0.25 + shape.a * 0.125 - 1;
 
-                return remap(shape.r, lOrig, 1, 0, 1);
+                return Remap(shape.r, lOrig, 1, 0, 1);
             }
 
             // Function adapted from Sebastian Lague https://youtu.be/4QOcCGI6xOU
             // Samples cloud density at given position
-            float sampleDensity(float3 position) {
+            float SampleDensity(float3 position, int miplevel) {
                 float3 newPos = position * cloudScale * 0.001 + cloudOffset * 0.01;
-                float4 shape = ShapeNoise.SampleLevel(samplerShapeNoise, newPos, 0);
+                float4 shape = ShapeNoise.SampleLevel(samplerShapeNoise, newPos, miplevel);
 
-                float combined = combineNoise(shape);
+                float combined = CombineNoise(shape);
 
                 float density = max(0, combined - densityThreshold) * densityMultiplier;
                 return density;
+            }
+
+            // Function adapted from Fredik Häggström http://umu.diva-portal.org/smash/record.jsf?pid=diva2%3A1223894&dswid=5365
+            // Calculate Beer's law (simplified)
+            float BeersLaw(float sunDensity) {
+                return exp(-lightAbsorption*sunDensity);
+            }
+
+            // Get density toward sun from point in cloud
+            float DensityTowardSun(float3 position, float distInBox) {
+                float sunStep = (0.5 * distInBox) / numSunSteps;
+                float density = 0;
+
+                float3 dir = normalize(sunPosition - position);
+
+                // Step toward sun
+                for (int i = 0; i < numSunSteps; i++) {
+                    int miplevel = 0.5 * i;
+
+                    float3 nextPosition = position + dir * sunStep * i;
+
+                    density += SampleDensity(nextPosition, miplevel) * sunStep;
+                }
+
+                return density;
+            }
+
+            // Gets total cloud density along ray
+            float2 GetTotalDensity(float3 rayOrigin, float3 rayDir, float distToBox, float distInBox, float depth) {
+                float distTravelled = 0;
+                float stepSize = distInBox / numSteps; // Step size based on number of steps
+                float limit = min(depth - distToBox, distInBox);
+
+                float totDensity = 0;
+                float sunDensity = 0;
+
+                while (distTravelled < limit) {
+                    // Current position on ray
+                    float3 pos = rayOrigin + rayDir * (distToBox + distTravelled);
+
+                    float density = SampleDensity(pos, 0);
+
+                    // Only calculate steps to sun if non-zero density
+                    if (density > 0) {
+                        sunDensity += DensityTowardSun(pos, distInBox);
+                    }
+
+                    // Increase total density
+                    totDensity += density * stepSize;
+
+                    // Continue along ray
+                    distTravelled += stepSize;
+                }
+
+                return float2(totDensity, sunDensity);
             }
 
             v2f vert (appdata v) {
@@ -110,7 +171,7 @@ Shader "Hidden/RayMarch" {
                 float depth = LinearEyeDepth(nlDepth) * length(i.viewVector);
 
                 // Get distance to and in cloud box
-                float2 rayBox = rayBoxDist(boundsMin, boundsMax, rayOrigin, rayDir);
+                float2 rayBox = RayBoxDist(boundsMin, boundsMax, rayOrigin, rayDir);
                 float distToBox = rayBox.x;
                 float distInBox = rayBox.y;
 
@@ -119,26 +180,13 @@ Shader "Hidden/RayMarch" {
                 if (!rayHit)
                     return col;
 
-                float distTravelled = 0; // Distance travelled in box
-                float stepSize = distInBox / numSteps; // Step size based on number of steps
-                float limit = min(depth - distToBox, distInBox);
-
-                float totDensity = 0;
-                while (distTravelled < limit) {
-                    // Current position on ray
-                    float3 pos = rayOrigin + rayDir * (distToBox + distTravelled);
-                    
-                    // Increase total density
-                    totDensity += sampleDensity(pos) * stepSize;
-
-                    // Continue along ray
-                    distTravelled += stepSize;
-                }
+                // Get total density and accumulated density toward sun
+                float2 density = GetTotalDensity(rayOrigin, rayDir, distToBox, distInBox, depth);
 
                 // Calculate transmittance, how much light gets through based on density
-                float transmittance = exp(-totDensity);
-
-                return col * transmittance + (1 - transmittance);
+                float transmittance = exp(-density.x);
+                //return col * transmittance + (1 - transmittance);
+                return col * transmittance + (1-BeersLaw(density.y)) * _LightColor0;
             }
             ENDCG
         }
