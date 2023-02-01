@@ -17,9 +17,6 @@ public class Noise : MonoBehaviour {
     [SerializeField] int cellCount = 4;
     [SerializeField] int seed = 5;
 
-    [Range(0, 1)]
-    [SerializeField] private float noiseThreshold = 0;
-
     private ComputeBuffer computeBuffer;
 
     private bool needsUpdate = true;
@@ -42,14 +39,12 @@ public class Noise : MonoBehaviour {
         
         computeShader.SetInt("_TextureResolution", textureResolution);
         computeShader.SetTexture(0, "_Result", renderTexture);
-        computeShader.SetFloat("_Threshold", noiseThreshold);
 
         // Run compute shader once for each channel (rgba), w. increasing freq
         int currentCellCount = cellCount;
         for (int i = 0; i < 4; i++) {
             DispatchShader(i, currentCellCount);
-            if (i != 3)
-                currentCellCount *= 2;
+            currentCellCount *= 2;
         }
         computeBuffer.Release();
         computeBuffer = null;

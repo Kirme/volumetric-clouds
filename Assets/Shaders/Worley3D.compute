@@ -7,7 +7,6 @@ int _CellResolution;
 int _CellCount;
 
 int _Channel;
-float _Threshold;
 
 StructuredBuffer<float3> _Points; // List of points to which we calculate distance
 RWTexture3D<float4> _Result;
@@ -18,7 +17,7 @@ float4 GetResult(float invertedMin) {
         _Channel == 0 ? invertedMin : 0,
         _Channel == 1 ? invertedMin : 0,
         _Channel == 2 ? invertedMin : 0,
-        /*_Channel == 3 ? invertedMin : 0*/ 1
+        _Channel == 3 ? invertedMin : 0
     );
 
     return res;
@@ -29,10 +28,6 @@ void SetResult(float min, uint3 id)
 {
     // Want white spots w. black background
     float invertedMin = 1.0 - min;
-    
-    // Only draw color if we are above the threshold
-    if (invertedMin < _Threshold)
-        invertedMin = 0.0;
     
     // Set result to the correct channel
     _Result[id] += GetResult(invertedMin);
