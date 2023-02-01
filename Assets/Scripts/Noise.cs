@@ -46,13 +46,11 @@ public class Noise : MonoBehaviour {
 
         // Run compute shader once for each channel (rgba), w. increasing freq
         int currentCellCount = cellCount;
-        
         for (int i = 0; i < 4; i++) {
             DispatchShader(i, currentCellCount);
             if (i != 3)
                 currentCellCount *= 2;
         }
-
         computeBuffer.Release();
         computeBuffer = null;
     }

@@ -23,10 +23,15 @@ public class Clouds : MonoBehaviour
 
     [SerializeField] private Vector3 offset;
 
+    [Range(0, 1)]
+    [SerializeField] private float globalCoverage;
+
+    [SerializeField] private Vector4 shapeNoiseWeights;
+
     [Header("Lighting")]
+    [Range(0, 0.1f)]
     [SerializeField] private float lightAbsorption;
     [SerializeField] private int numSunSteps = 4;
-    [SerializeField] private Vector3 sunPosition;
 
     private Material material;
 
@@ -61,10 +66,11 @@ public class Clouds : MonoBehaviour
         material.SetFloat("densityThreshold", densityThreshold);
         material.SetFloat("densityMultiplier", densityMultiplier);
         material.SetInt("numSteps", numSteps);
+        material.SetFloat("gc", globalCoverage);
+        material.SetVector("shapeNoiseWeights", shapeNoiseWeights);
 
         // Lighting
         material.SetFloat("lightAbsorption", lightAbsorption);
         material.SetInt("numSunSteps", numSunSteps);
-        material.SetVector("sunPosition", sunPosition);
     }
 }
