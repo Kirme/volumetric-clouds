@@ -195,6 +195,10 @@ Shader "Hidden/RayMarch" {
                         transmittance *= exp(-density * stepSize);
                     }
 
+                    // Early exit
+                    if (transmittance < 0.01)
+                        break;
+
                     // Continue along ray
                     distTravelled += stepSize;
                 }
@@ -223,8 +227,15 @@ Shader "Hidden/RayMarch" {
                 return float2 (x / scale, y / scale);
             }
 
+            bool ShouldExitEarly() {
+                return numSteps <= 0;
+            }
+
             fixed4 frag (v2f i) : SV_Target {
                 fixed4 col = tex2D(_MainTex, i.uv);
+
+                if (ShouldExitEarly())
+                    return col;
 
                 // Get ray origin and direction
                 float3 rayOrigin = _WorldSpaceCameraPos;
