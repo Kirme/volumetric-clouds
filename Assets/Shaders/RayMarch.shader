@@ -30,11 +30,15 @@ Shader "Hidden/RayMarch" {
 
             sampler2D _CameraDepthTexture;
 
+            // Noise
             Texture3D<float4> ShapeNoise;
             SamplerState samplerShapeNoise;
 
             Texture3D<float4> DetailNoise;
             SamplerState samplerDetailNoise;
+
+            Texture2D<float4> BlueNoise;
+            SamplerState samplerBlueNoise;
 
             // Parameters
             float3 boundsMin;
@@ -164,10 +168,12 @@ Shader "Hidden/RayMarch" {
             }
 
             // Gets total cloud density along ray
-            float4 GetTransmittance(float3 rayOrigin, float3 rayDir, float distToBox, float distInBox, float depth) {
-                float distTravelled = 0;
+            float4 GetTransmittance(float3 rayOrigin, float3 rayDir, float distToBox, float distInBox, float depth, float blueNoise) {
                 float stepSize = distInBox / numSteps; // Step size based on number of steps
                 float limit = min(depth - distToBox, distInBox);
+
+                float rayOffset = (blueNoise - 0.5) * 2 * stepSize;
+                float distTravelled = rayOffset;
 
                 float totDensity = 0;
 
@@ -207,6 +213,16 @@ Shader "Hidden/RayMarch" {
                 return o;
             }
 
+            float2 squareUV(float2 uv) {
+                float width = _ScreenParams.x;
+                float height = _ScreenParams.y;
+
+                float scale = 1000;
+                float x = uv.x * width;
+                float y = uv.y * height;
+                return float2 (x / scale, y / scale);
+            }
+
             fixed4 frag (v2f i) : SV_Target {
                 fixed4 col = tex2D(_MainTex, i.uv);
 
@@ -228,10 +244,11 @@ Shader "Hidden/RayMarch" {
                 if (!rayHit)
                     return col;
 
+                float blueNoise = BlueNoise.SampleLevel(samplerBlueNoise, i.uv, 0);
+
                 // Calculate transmittance and light energy
-                float4 transmittance = GetTransmittance(rayOrigin, rayDir, distToBox, distInBox, depth);
+                float4 transmittance = GetTransmittance(rayOrigin, rayDir, distToBox, distInBox, depth, blueNoise);
                 float3 lightEnergy = transmittance.yzw;
-                //return col * transmittance + (1 - transmittance);
 
                 return fixed4(col * transmittance.x + lightEnergy * _LightColor0, 0);
             }

@@ -7,6 +7,8 @@ public class Clouds : MonoBehaviour
 {
     [SerializeField] private Shader shader;
     [SerializeField] private Transform cloudsBox;
+    [Tooltip("Counters banding caused by long step lengths in ray marcher")]
+    [SerializeField] private Texture2D blueNoise;
 
     [Header("Movement")]
     [SerializeField] private bool movement = false;
@@ -62,6 +64,7 @@ public class Clouds : MonoBehaviour
 
         material.SetTexture("ShapeNoise", noise.GetShapeNoise());
         material.SetTexture("DetailNoise", noise.GetDetailNoise());
+        material.SetTexture("blueNoise", blueNoise);
 
         Graphics.Blit(source, destination, material);
     }
