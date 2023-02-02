@@ -28,6 +28,11 @@ public class Clouds : MonoBehaviour
 
     [SerializeField] private Vector4 shapeNoiseWeights;
 
+    [Header("Cloud Detail")]
+    [SerializeField] private Vector3 detailNoiseWeights;
+    [SerializeField] private float detailScale;
+    [SerializeField] private Vector3 detailOffset;
+
     [Header("Lighting")]
     [Range(0, 0.1f)]
     [SerializeField] private float lightAbsorption;
@@ -53,8 +58,10 @@ public class Clouds : MonoBehaviour
         SetProperties();
 
         // Get noise
-        RenderTexture noise = FindObjectOfType<Noise>().GetNoise();
-        material.SetTexture("ShapeNoise", noise);
+        Noise noise = FindObjectOfType<Noise>();
+
+        material.SetTexture("ShapeNoise", noise.GetShapeNoise());
+        material.SetTexture("DetailNoise", noise.GetDetailNoise());
 
         Graphics.Blit(source, destination, material);
     }
@@ -68,6 +75,11 @@ public class Clouds : MonoBehaviour
         material.SetInt("numSteps", numSteps);
         material.SetFloat("gc", globalCoverage);
         material.SetVector("shapeNoiseWeights", shapeNoiseWeights);
+
+        // Detail
+        material.SetVector("detailNoiseWeights", detailNoiseWeights);
+        material.SetVector("detailOffset", detailOffset);
+        material.SetFloat("detailScale", detailScale);
 
         // Lighting
         material.SetFloat("lightAbsorption", lightAbsorption);

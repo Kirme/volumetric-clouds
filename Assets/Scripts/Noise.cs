@@ -8,23 +8,35 @@ using Random = UnityEngine.Random;
 public class Noise : MonoBehaviour {
     private const int threadGroupSize = 8;
 
-    [SerializeField] private RenderTexture renderTexture;
+    [SerializeField] private RenderTexture shapeNoise;
+    [SerializeField] private RenderTexture detailNoise;
 
     [SerializeField] private ComputeShader computeShader;
+    
 
-    [Header("Worley Parameters")]
-    [SerializeField] private int textureResolution = 128;
-    [SerializeField] int cellCount = 4;
-    [SerializeField] int seed = 5;
+    [Header("Shape Noise Parameters")]
+    [SerializeField] private int shapeResolution = 128;
+    [SerializeField] int shapeCellCount = 4;
+    [SerializeField] int shapeSeed = 0;
+
+    [Header("Detail Noise Parameters")]
+    [SerializeField] private int detailResolution = 128;
+    [SerializeField] int detailCellCount = 4;
+    [SerializeField] int detailSeed = 0;
 
     private ComputeBuffer computeBuffer;
 
     private bool needsUpdate = true;
 
+    private int textureResolution;
+    private int cellCount;
+    private int seed;
+
     void Update() {
         if (needsUpdate) {
             needsUpdate = false;
-            GenerateNoise();
+            GenerateShapeNoise();
+            GenerateDetailNoise();
         }
     }
 
@@ -32,9 +44,26 @@ public class Noise : MonoBehaviour {
         needsUpdate = true;
     }
 
-    public void GenerateNoise() {
+    private void GenerateShapeNoise() {
+        textureResolution = shapeResolution;
+        cellCount = shapeCellCount;
+        CreateShapeNoiseTexture();
+        seed = shapeSeed;
+
+        GenerateNoise(ref shapeNoise, 4, 2);
+    }
+
+    private void GenerateDetailNoise() {
+        textureResolution = detailResolution;
+        cellCount = detailCellCount;
+        CreateDetailNoiseTexture();
+        seed = detailSeed;
+
+        GenerateNoise(ref detailNoise, 3, 2);
+    }
+
+    public void GenerateNoise(ref RenderTexture renderTexture, int chNum, int chMult) {
         // Initialization
-        CreateRenderTexture();
         Random.InitState(seed);
         
         computeShader.SetInt("_TextureResolution", textureResolution);
@@ -42,9 +71,9 @@ public class Noise : MonoBehaviour {
 
         // Run compute shader once for each channel (rgba), w. increasing freq
         int currentCellCount = cellCount;
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < chNum; i++) {
             DispatchShader(i, currentCellCount);
-            currentCellCount *= 2;
+            currentCellCount *= chMult;
         }
         computeBuffer.Release();
         computeBuffer = null;
@@ -68,8 +97,22 @@ public class Noise : MonoBehaviour {
         computeShader.SetInt("_Channel", channel);
     }
 
+    private void CreateShapeNoiseTexture() {
+        if (shapeNoise != null)
+            shapeNoise.Release();
+
+        CreateRenderTexture(ref shapeNoise);
+    }
+
+    private void CreateDetailNoiseTexture() {
+        if (detailNoise != null)
+            detailNoise.Release();
+
+        CreateRenderTexture(ref detailNoise);
+    }
+
     // Create the render texture
-    private void CreateRenderTexture() {
+    private void CreateRenderTexture(ref RenderTexture renderTexture) {
         if (renderTexture != null)
             renderTexture.Release();
 
@@ -105,7 +148,11 @@ public class Noise : MonoBehaviour {
         computeBuffer.SetData(points);
     }
 
-    public RenderTexture GetNoise() {
-        return renderTexture;
+    public RenderTexture GetShapeNoise() {
+        return shapeNoise;
+    }
+
+    public RenderTexture GetDetailNoise() {
+        return detailNoise;
     }
 }

@@ -33,12 +33,18 @@ Shader "Hidden/RayMarch" {
             Texture3D<float4> ShapeNoise;
             SamplerState samplerShapeNoise;
 
+            Texture3D<float4> DetailNoise;
+            SamplerState samplerDetailNoise;
+
             // Parameters
             float3 boundsMin;
             float3 boundsMax;
 
             float3 cloudOffset;
             float cloudScale;
+
+            float3 detailOffset;
+            float detailScale;
 
             float densityThreshold;
             float densityMultiplier;
@@ -47,6 +53,7 @@ Shader "Hidden/RayMarch" {
             float gc;
 
             float4 shapeNoiseWeights;
+            float3 detailNoiseWeights;
 
             // Lighting parameters
             float lightAbsorption;
@@ -87,30 +94,45 @@ Shader "Hidden/RayMarch" {
             // Function adapted from Sebastian Lague https://youtu.be/4QOcCGI6xOU
             // Samples cloud density at given position
             float SampleDensity(float3 position, int miplevel) {
+                // Scale and offset position by params
                 float3 newPos = position * cloudScale * 0.001 + cloudOffset * 0.01;
 
+                // Get shape noise at position
                 float4 shape = ShapeNoise.SampleLevel(samplerShapeNoise, newPos, miplevel);
 
+                // Current height in cloud box
                 float height = (position.y - boundsMin.y) / (boundsMax.y - boundsMin.y);
 
-                // Calculate falloff at along x/z edges of the cloud container
+                // Falloff along x & z in container
                 const float containerEdgeFadeDst = 50;
                 float distFromEdgeX = min(containerEdgeFadeDst, min(position.x - boundsMin.x, boundsMax.x - position.x));
                 float distFromEdgeZ = min(containerEdgeFadeDst, min(position.z - boundsMin.z, boundsMax.z - position.z));
                 float edgeWeight = min(distFromEdgeZ, distFromEdgeX) / containerEdgeFadeDst;
 
+                // Falloff in y direction of container
                 float gMin = .2;
                 float gMax = .7;
                 float heightGradient = saturate(Remap(height, 0.0, gMin, 0, 1)) * saturate(Remap(height, 1, gMax, 0, 1));
                 heightGradient *= edgeWeight;
 
+                // Get FBM by weight params
                 float4 normalizedWeights = shapeNoiseWeights / dot(shapeNoiseWeights, 1);
                 float shapeFBM = dot(shape, normalizedWeights) * heightGradient;
 
-                //float combined = CombineNoise(shape);
+                if (shapeFBM > 0) {
+                    // Get detail noise, same process as shape noise
+                    float3 newDetailPos = position * detailScale * 0.001 + detailOffset * 0.01;
+                    float4 detail = DetailNoise.SampleLevel(samplerDetailNoise, newDetailPos, miplevel);
 
-                float density = max(0, shapeFBM - densityThreshold) * densityMultiplier;
-                return density;
+                    float3 normalizedDetailWeights = detailNoiseWeights / dot(detailNoiseWeights, 1);
+                    float detailFBM = dot(detail, float4(detailNoiseWeights, 0));
+
+                    // Combine shape and detail noise
+                    float density = (shapeFBM + detailFBM - densityThreshold) * densityMultiplier;
+                    return density;
+                }
+
+                return 0;
             }
 
             // Function adapted from Fredik Häggström http://umu.diva-portal.org/smash/record.jsf?pid=diva2%3A1223894&dswid=5365
@@ -130,6 +152,7 @@ Shader "Hidden/RayMarch" {
                 float density = 0;
                 // Step numSunSteps times toward sun, meaning num+1 sample points
                 for (int i = 0; i <= numSunSteps; i++) {
+                    // Increasing mip level for each step, reduces performance cost
                     int miplevel = 0.5 * i;
 
                     position += lightDir * stepSize;
