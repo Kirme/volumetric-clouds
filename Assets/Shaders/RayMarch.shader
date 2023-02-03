@@ -23,10 +23,12 @@ Shader "Hidden/RayMarch" {
                 float2 uv : TEXCOORD0;
                 float4 vertex : SV_POSITION;
                 float3 viewVector : TEXCOORD1;
+                float2 screenPos : TEXCOORD2;
             };
 
             sampler2D _MainTex;
             float4 _MainTex_ST;
+            float4 _MainTex_TexelSize;
 
             sampler2D _CameraDepthTexture;
 
@@ -41,6 +43,10 @@ Shader "Hidden/RayMarch" {
             SamplerState samplerBlueNoise;
 
             // Parameters
+            int useInterpolation;
+            int isFirstIteration;
+            int marchInterval;
+            
             float3 boundsMin;
             float3 boundsMax;
 
@@ -213,6 +219,7 @@ Shader "Hidden/RayMarch" {
 
                 float3 viewVector = mul(unity_CameraInvProjection, float4(v.uv * 2 - 1, 0, -1));
                 o.viewVector = mul(unity_CameraToWorld, float4(viewVector, 0));
+                o.screenPos = ComputeScreenPos(o.vertex);
 
                 return o;
             }
@@ -231,7 +238,7 @@ Shader "Hidden/RayMarch" {
                 return numSteps <= 0;
             }
 
-            fixed4 frag (v2f i) : SV_Target {
+            fixed4 March(v2f i) {
                 fixed4 col = tex2D(_MainTex, i.uv);
 
                 if (ShouldExitEarly())
@@ -262,6 +269,51 @@ Shader "Hidden/RayMarch" {
                 float3 lightEnergy = transmittance.yzw;
 
                 return fixed4(col * transmittance.x + lightEnergy * _LightColor0, 0);
+            }
+
+            // Should we evaluate this pixel in this iteration?
+            bool ShouldEvaluate(float2 pos) {
+                bool isFirstPattern = floor(pos.x) % marchInterval == floor(pos.y) % marchInterval;
+                
+                return isFirstPattern == isFirstIteration;
+            }
+
+            // Interpolate pixel color based on already ray marched pixels
+            fixed4 InterpolateColor(v2f i) {
+                float2 pixelPos = i.uv * _MainTex_TexelSize.zw;
+                int xRem = pixelPos.x % marchInterval;
+                int yRem = pixelPos.y % marchInterval;
+                
+                float2 right = i.uv + float2(_MainTex_TexelSize.x, 0);
+                float2 left = i.uv - float2(_MainTex_TexelSize.x, 0);
+                float2 top = i.uv + float2(0, _MainTex_TexelSize.y);
+                float2 bottom = i.uv - float2(0, _MainTex_TexelSize.y);
+
+                fixed4 newCol = tex2D(_MainTex, right) + tex2D(_MainTex, left)
+                                + tex2D(_MainTex, top) + tex2D(_MainTex, bottom);
+                newCol /= 4;
+                return newCol;
+            }
+
+            fixed4 frag (v2f i) : SV_Target {
+                // Normal raymarch
+                if (!useInterpolation) {
+                    return March(i);
+                }
+                
+                //float2 pixelPos = float2(i.screenPos.x * _ScreenParams.x, i.screenPos.y * _ScreenParams.y);
+                float2 pixelPos = i.uv * _MainTex_TexelSize.zw;
+
+                if (ShouldEvaluate(pixelPos)) {
+                    if (isFirstIteration) { // We should just ray march
+                        return March(i);
+                    }
+                    else { // Interpolate the color
+                        return InterpolateColor(i);
+                    }
+                }
+
+                return tex2D(_MainTex, i.uv);
             }
             ENDCG
         }

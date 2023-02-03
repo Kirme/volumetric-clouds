@@ -10,6 +10,12 @@ public class Clouds : MonoBehaviour
     [Tooltip("Counters banding caused by long step lengths in ray marcher")]
     [SerializeField] private Texture2D blueNoise;
 
+    [Tooltip("Should it interpolate every other pixel?")]
+    [SerializeField] private bool useInterpolation;
+    [Tooltip("Only march every nth pixel")]
+    [Range(2, 8)]
+    [SerializeField] private int marchInterval;
+
     [Header("Movement")]
     [SerializeField] private bool movement = false;
     [Range(0.0f, 10.0f)]
@@ -66,10 +72,31 @@ public class Clouds : MonoBehaviour
         material.SetTexture("DetailNoise", noise.GetDetailNoise());
         material.SetTexture("blueNoise", blueNoise);
 
-        Graphics.Blit(source, destination, material);
+        if (useInterpolation) {
+            RunShaderTwice(source, destination);
+        } else {
+            Graphics.Blit(source, destination, material);
+        }
+    }
+
+    private void RunShaderTwice(RenderTexture source, RenderTexture destination) {
+        RenderTexture tmp = RenderTexture.GetTemporary(source.width, source.height, source.depth);
+
+        material.SetInt("isFirstIteration", 1);
+        Graphics.Blit(source, tmp, material);
+
+        material.SetInt("isFirstIteration", 0);
+        Graphics.Blit(tmp, destination, material);
+
+        RenderTexture.ReleaseTemporary(tmp);
     }
 
     private void SetProperties() {
+        // Need to convert to int due to no support for setting a material's bool
+        int interpolate = useInterpolation ? 1 : 0;
+        material.SetInt("useInterpolation", interpolate);
+        material.SetInt("marchInterval", marchInterval);
+    
         // Shape
         material.SetVector("cloudOffset", offset);
         material.SetFloat("cloudScale", cloudScale);
