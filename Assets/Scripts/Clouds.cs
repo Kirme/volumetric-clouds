@@ -60,7 +60,7 @@ public class Clouds : MonoBehaviour
         }
     }
 
-    private void OnRenderImage(RenderTexture source, RenderTexture destination) {
+    public void Render(RenderTexture source, RenderTexture destination) {
         if (material == null) {
             material = new Material(shader);
         }
