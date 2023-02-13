@@ -272,26 +272,75 @@ Shader "Hidden/RayMarch" {
             }
 
             // Should we evaluate this pixel in this iteration?
-            bool ShouldEvaluate(float2 pos) {
+            bool ShouldEvaluate(float2 pos, bool firstIt) {
                 bool isFirstPattern = floor(pos.x) % marchInterval == floor(pos.y) % marchInterval;
                 
-                return isFirstPattern == isFirstIteration;
+                return isFirstPattern == firstIt;
+            }
+
+            // Is position already ray marched and within the screen parameters?
+            bool ShouldInterpolateFrom(float2 pos, bool horizontal) {
+                bool ret = false;
+                
+                if (horizontal)
+                    ret = pos.x >= 0 && pos.x < _ScreenParams.x;
+                else
+                    ret = pos.y >= 0 && pos.y < _ScreenParams.y;
+
+                return ret && ShouldEvaluate(pos, true);
+            }
+
+            // Interpolate between two values with alpha-value, making sure both exist
+            fixed4 AddInterpolatedColor(float2 rt, float2 lb, float mult, bool horizontal) {
+                fixed4 col = float4(0,0,0,0); // Default color
+                
+                if (ShouldInterpolateFrom(rt, horizontal)) {
+                    col = tex2D(_MainTex, rt);
+
+                    if (ShouldInterpolateFrom(lb, horizontal)) {
+                        // Both are inside grid
+                        col *= mult;
+                        col += tex2D(_MainTex, lb) * (1 - mult);
+                    }
+
+                    // Else only rt inside grid, do nothing more
+                    return col;
+                }
+
+                if (ShouldInterpolateFrom(lb, horizontal)) {
+                    // Only lb inside grid
+                    col = tex2D(_MainTex, lb);
+                }
+
+                return col;
+            }
+
+            // Modulo that does not give negative result
+            float mod(float x, float m) {
+                return (x % m + m) % m;
             }
 
             // Interpolate pixel color based on already ray marched pixels
             fixed4 InterpolateColor(v2f i) {
-                float2 pixelPos = i.uv * _MainTex_TexelSize.zw;
-                int xRem = pixelPos.x % marchInterval;
-                int yRem = pixelPos.y % marchInterval;
+                float2 pos = i.uv * _MainTex_TexelSize.zw;
+                float xRem = mod(pos.x - pos.y, marchInterval);
+                float yRem = mod(pos.y - pos.x, marchInterval);
                 
-                float2 right = i.uv + float2(_MainTex_TexelSize.x, 0);
-                float2 left = i.uv - float2(_MainTex_TexelSize.x, 0);
-                float2 top = i.uv + float2(0, _MainTex_TexelSize.y);
-                float2 bottom = i.uv - float2(0, _MainTex_TexelSize.y);
+                float2 right = i.uv + float2(_MainTex_TexelSize.x, 0) * (marchInterval - xRem);
+                float2 left = i.uv - float2(_MainTex_TexelSize.x, 0) * xRem;
+                float2 top = i.uv + float2(0, _MainTex_TexelSize.y) * (marchInterval - yRem);
+                float2 bottom = i.uv - float2(0, _MainTex_TexelSize.y) * yRem;
 
-                fixed4 newCol = tex2D(_MainTex, right) + tex2D(_MainTex, left)
-                                + tex2D(_MainTex, top) + tex2D(_MainTex, bottom);
-                newCol /= 4;
+                // alpha-value for x and y
+                float xp = xRem / marchInterval;
+                float yp = yRem / marchInterval;
+
+                fixed4 newCol = AddInterpolatedColor(top, bottom, yp, false);
+                newCol += AddInterpolatedColor(right, left, xp, true);
+                
+                // Since we add vertical and horizontal color, need to divide
+                newCol /= 2;
+                
                 return newCol;
             }
 
@@ -304,7 +353,7 @@ Shader "Hidden/RayMarch" {
                 //float2 pixelPos = float2(i.screenPos.x * _ScreenParams.x, i.screenPos.y * _ScreenParams.y);
                 float2 pixelPos = i.uv * _MainTex_TexelSize.zw;
 
-                if (ShouldEvaluate(pixelPos)) {
+                if (ShouldEvaluate(pixelPos, isFirstIteration)) {
                     if (isFirstIteration) { // We should just ray march
                         return March(i);
                     }

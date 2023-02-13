@@ -10,11 +10,17 @@ public class Clouds : MonoBehaviour
     [Tooltip("Counters banding caused by long step lengths in ray marcher")]
     [SerializeField] private Texture2D blueNoise;
 
+    private enum March {
+        _2 = 2,
+        _4 = 4,
+        _8 = 8
+    }
+
     [Tooltip("Should it interpolate every other pixel?")]
     [SerializeField] private bool useInterpolation;
     [Tooltip("Only march every nth pixel")]
-    [Range(2, 8)]
-    [SerializeField] private int marchInterval;
+    
+    [SerializeField] private March marchInterval;
 
     [Header("Movement")]
     [SerializeField] private bool movement = false;
@@ -95,7 +101,7 @@ public class Clouds : MonoBehaviour
         // Need to convert to int due to no support for setting a material's bool
         int interpolate = useInterpolation ? 1 : 0;
         material.SetInt("useInterpolation", interpolate);
-        material.SetInt("marchInterval", marchInterval);
+        material.SetInt("marchInterval", (int) marchInterval);
     
         // Shape
         material.SetVector("cloudOffset", offset);
