@@ -16,13 +16,13 @@ public class Noise : MonoBehaviour {
 
     [Header("Shape Noise Parameters")]
     [SerializeField] private int shapeResolution = 128;
-    [SerializeField] int shapeCellCount = 4;
-    [SerializeField] int shapeSeed = 0;
+    [SerializeField] private int shapeCellCount = 4;
+    public int shapeSeed = 0;
 
     [Header("Detail Noise Parameters")]
     [SerializeField] private int detailResolution = 128;
-    [SerializeField] int detailCellCount = 4;
-    [SerializeField] int detailSeed = 0;
+    [SerializeField] private int detailCellCount = 4;
+    public int detailSeed = 0;
 
     private ComputeBuffer computeBuffer;
 

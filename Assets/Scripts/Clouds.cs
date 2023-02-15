@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-[ExecuteInEditMode, ImageEffectAllowedInSceneView]
+[ExecuteInEditMode]
 public class Clouds : MonoBehaviour
 {
     [SerializeField] private Shader shader;
@@ -10,17 +10,17 @@ public class Clouds : MonoBehaviour
     [Tooltip("Counters banding caused by long step lengths in ray marcher")]
     [SerializeField] private Texture2D blueNoise;
 
-    private enum March {
+    public enum March {
         _2 = 2,
         _4 = 4,
         _8 = 8
     }
 
     [Tooltip("Should it interpolate every other pixel?")]
-    [SerializeField] private bool useInterpolation;
+    public bool useInterpolation;
+
     [Tooltip("Only march every nth pixel")]
-    
-    [SerializeField] private March marchInterval;
+    public March marchInterval;
 
     [Header("Movement")]
     [SerializeField] private bool movement = false;
@@ -33,7 +33,7 @@ public class Clouds : MonoBehaviour
 
     [SerializeField] private float densityMultiplier;
     [Range(0, 1)]
-    [SerializeField] private float densityThreshold;
+    public float densityThreshold;
 
     [SerializeField] private Vector3 offset;
 
