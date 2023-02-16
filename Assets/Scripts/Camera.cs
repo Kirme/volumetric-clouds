@@ -14,6 +14,20 @@ public class Camera : MonoBehaviour {
 
     private CinemachineTrackedDolly dolly;
 
+    public string fileName;
+
+    private void Awake() {
+        if (!Application.isPlaying) return;
+
+        int march = clouds.useInterpolation ? (int)clouds.marchInterval : 0;
+
+        // Name is "shapeSeed_detailSeed_marchInterval_pathPosition", for eval of seeds
+        fileName = noise.shapeSeed + "_" + noise.detailSeed + "_" + march;
+
+        // Name is "densiyThreshold_marchInterval_pathPosition", for eval of coverage
+        //fileName = clouds.densityThreshold + "_" + march;
+    }
+
     private void Start() {
         dolly = virtualCamera.GetCinemachineComponent<CinemachineTrackedDolly>();
         dolly.m_PathPosition = 0.0f;
@@ -26,10 +40,17 @@ public class Camera : MonoBehaviour {
 
         // Update position on path
         dolly.m_PathPosition += cameraSpeed;
+
+        // Avg to two decimal points
         dolly.m_PathPosition = Mathf.Round(dolly.m_PathPosition * 100f) / 100f;
 
         if (IsAtWholeValue(dolly.m_PathPosition)) {
             TakeScreenshot();
+
+            // If on last position
+            if (dolly.m_PathPosition >= dolly.m_Path.MaxPos) {
+                GetComponent<FPS>().CloseFile();
+            }
         }
     }
 
@@ -38,16 +59,10 @@ public class Camera : MonoBehaviour {
     }
 
     private void TakeScreenshot() {
-        int march = clouds.useInterpolation ? (int) clouds.marchInterval : 0;
-
-        // Name is "shapeSeed_detailSeed_marchInterval_pathPosition", for eval of seeds
-        string name = noise.shapeSeed + "_" + noise.detailSeed + "_" + march + "_" + dolly.m_PathPosition + ".png";
-
-        // Name is "densiyThreshold_marchInterval_pathPosition", for eval of coverage
-        //string name = clouds.densityThreshold + "_" + march + "_" + dolly.m_PathPosition + ".png";
+        string name = fileName + "_" + dolly.m_PathPosition + ".png";
 
         Debug.Log("Screenshot taken: " + name);
-        ScreenCapture.CaptureScreenshot(name);
+        ScreenCapture.CaptureScreenshot("./eval/img/" + name);
     }
 
     private bool IsAtWholeValue(float pos) {
