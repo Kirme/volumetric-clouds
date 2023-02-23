@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using Cinemachine;
 
-[ExecuteAlways, ImageEffectAllowedInSceneView]
 public class Camera : MonoBehaviour {
     [SerializeField] private Clouds clouds;
     [SerializeField] private CinemachineVirtualCamera virtualCamera;
@@ -11,32 +10,30 @@ public class Camera : MonoBehaviour {
 
     [Tooltip("For Evaluation")]
     [SerializeField] private Noise noise;
-
+    [SerializeField] private List<Vector2Int> seeds;
+    
+    private string fileName;
     private CinemachineTrackedDolly dolly;
-
-    public string fileName;
+    private int iteration = 0;
 
     private void Awake() {
-        if (!Application.isPlaying) return;
-
-        int march = clouds.useInterpolation ? (int)clouds.marchInterval : 0;
-
-        // Name is "shapeSeed_detailSeed_marchInterval_pathPosition", for eval of seeds
-        fileName = noise.shapeSeed + "_" + noise.detailSeed + "_" + march;
-
-        // Name is "densiyThreshold_marchInterval_pathPosition", for eval of coverage
-        //fileName = clouds.densityThreshold + "_" + march;
+        SetFileName();
     }
 
     private void Start() {
         dolly = virtualCamera.GetCinemachineComponent<CinemachineTrackedDolly>();
         dolly.m_PathPosition = 0.0f;
+
+        SetSeed();
     }
 
     private void FixedUpdate() {
         // Should only move and evaluate when playing
-        if (!Application.isPlaying || dolly.m_PathPosition >= dolly.m_Path.MaxPos)
-            return;
+        if (dolly.m_PathPosition >= dolly.m_Path.MaxPos) {
+            if (!HasNextIteration()) {
+                return;
+            }
+        }
 
         // Update position on path
         dolly.m_PathPosition += cameraSpeed;
@@ -54,8 +51,27 @@ public class Camera : MonoBehaviour {
         }
     }
 
-    private void OnRenderImage(RenderTexture source, RenderTexture destination) {
-        clouds.Render(source, destination);
+    private void SetFileName() {
+        int march = clouds.useInterpolation ? (int)clouds.marchInterval : 0;
+
+        // Name is "shapeSeed_detailSeed_marchInterval_pathPosition", for eval of seeds
+        fileName = noise.shapeSeed + "_" + noise.detailSeed + "_" + march;
+
+        // Name is "densiyThreshold_marchInterval_pathPosition", for eval of coverage
+        //fileName = clouds.densityThreshold + "_" + march;
+    }
+
+    private bool HasNextIteration() {
+        if (SetSeed()) {
+            noise.UpdateNoise();
+            SetFileName();
+
+            dolly.m_PathPosition = 0; // Reset position
+
+            return true;
+        }
+
+        return false;
     }
 
     private void TakeScreenshot() {
@@ -67,5 +83,24 @@ public class Camera : MonoBehaviour {
 
     private bool IsAtWholeValue(float pos) {
         return pos == (int) pos;
+    }
+
+    private bool SetSeed() {
+        if (iteration < seeds.Count) {
+            Vector2Int seed = seeds[iteration];
+
+            noise.shapeSeed = seed.x;
+            noise.detailSeed = seed.y;
+
+            iteration++;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public string GetFileName() {
+        return fileName;
     }
 }

@@ -231,6 +231,7 @@ GameObject:
   - component: {fileID: 963194230}
   - component: {fileID: 963194231}
   - component: {fileID: 963194232}
+  - component: {fileID: 963194233}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -320,7 +321,10 @@ MonoBehaviour:
   virtualCamera: {fileID: 1358035707}
   cameraSpeed: 0.01
   noise: {fileID: 1216836807}
-  fileName: 0_0_8
+  seeds:
+  - {x: 0, y: 0}
+  - {x: 654, y: 23}
+  - {x: 2346, y: 87}
 --- !u!114 &963194231
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -367,6 +371,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e76fa6f86493f1843b71901eb87712a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &963194233
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 963194225}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c119bed93aaed04fbe32f127c0c4bfc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  clouds: {fileID: 1784216244}
 --- !u!1 &1031544087
 GameObject:
   m_ObjectHideFlags: 0
@@ -459,8 +476,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a8221d724958354583b9580ac115365, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  shapeNoise: {fileID: 1796036526}
-  detailNoise: {fileID: 1427380651}
+  shapeNoise: {fileID: 1837351707}
+  detailNoise: {fileID: 1483511601}
   computeShader: {fileID: 7200000, guid: 39e5879dc90c3124695d749f41b2a508, type: 3}
   shapeResolution: 128
   shapeCellCount: 4
@@ -588,7 +605,7 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!84 &1427380651
+--- !u!84 &1483511601
 RenderTexture:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -835,7 +852,7 @@ MonoBehaviour:
   shader: {fileID: 4800000, guid: 7c4de9b02c1faa3479c513d380d0247c, type: 3}
   cloudsBox: {fileID: 1784216243}
   blueNoise: {fileID: 2800000, guid: 695c366e3feb81c4780f188ed544de51, type: 3}
-  useInterpolation: 1
+  useInterpolation: 0
   marchInterval: 8
   movement: 0
   moveSpeed: 1
@@ -851,7 +868,7 @@ MonoBehaviour:
   detailOffset: {x: 0, y: 0, z: 0}
   lightAbsorption: 0.1
   numSunSteps: 4
---- !u!84 &1796036526
+--- !u!84 &1837351707
 RenderTexture:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

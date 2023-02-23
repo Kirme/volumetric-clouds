@@ -32,7 +32,7 @@ public class FPS : MonoBehaviour {
     }
 
     private void OpenFile() {
-        string destination = "./eval/fps/" + GetComponent<Camera>().fileName + ".txt";
+        string destination = "./eval/fps/" + GetComponent<Camera>().GetFileName() + ".txt";
 
         writer = new StreamWriter(destination, true);
     }

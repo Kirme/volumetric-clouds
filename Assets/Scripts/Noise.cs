@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using Random = UnityEngine.Random;
 
-[ExecuteInEditMode]
+[ExecuteAlways]
 public class Noise : MonoBehaviour {
     private const int threadGroupSize = 8;
 
@@ -41,6 +41,10 @@ public class Noise : MonoBehaviour {
     }
 
     private void OnValidate() {
+        needsUpdate = true;
+    }
+
+    public void UpdateNoise() {
         needsUpdate = true;
     }
 
