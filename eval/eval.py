@@ -82,7 +82,8 @@ def fps_result():
 # SSIM
 
 ssim = [0.0, 0.0, 0.0]
-def_pos = "1"
+def_pos = "5"
+num_seeds = 0
 
 def ssim_diff(dir, def_dir, it):
     image = cv2.imread(dir)
@@ -93,7 +94,9 @@ def ssim_diff(dir, def_dir, it):
     ssim[it] += sim
  
 def ssim_walk(root):
+    global num_seeds
     def_dir = ''
+
     for subdir, dirs, files in os.walk(root):
         for file in files:
             if (dir != 'img'):
@@ -106,14 +109,20 @@ def ssim_walk(root):
                 if (float(interp) == 0.0):
                     it = 0
                     def_dir = img_dir
+                    num_seeds += 1
                 else:
                     ssim_diff(img_dir, def_dir, it)
                     it += 1
 
 def ssim_result():
-    actual_ssim = [x / 4 for x in ssim]
+    actual_ssim = ssim
 
-    plt.plot(thresholds, ssim)
+    print("Num: " + str(num_seeds))
+    if (num_seeds != 0):
+        actual_ssim = [x / num_seeds for x in ssim]
+
+    plt.scatter(thresholds, actual_ssim)
+    plt.plot(thresholds, actual_ssim)
     plt.xlabel('nth interpolated')
     plt.ylabel('SSIM Value')
     plt.title('SSIM')
