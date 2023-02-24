@@ -273,7 +273,7 @@ Shader "Hidden/RayMarch" {
 
             // Should we evaluate this pixel in this iteration?
             bool ShouldEvaluate(float2 pos, bool firstIt) {
-                bool isFirstPattern = floor(pos.x) % marchInterval == floor(pos.y) % marchInterval;
+                bool isFirstPattern = floor(pos.x) % marchInterval == 0 && floor(pos.y) % marchInterval == 0;
                 
                 return isFirstPattern == firstIt;
             }
@@ -323,6 +323,8 @@ Shader "Hidden/RayMarch" {
             // Interpolate pixel color based on already ray marched pixels
             fixed4 InterpolateColor(v2f i) {
                 float2 pos = i.uv * _MainTex_TexelSize.zw;
+
+                /*
                 float xRem = mod(pos.x - pos.y, marchInterval);
                 float yRem = mod(pos.y - pos.x, marchInterval);
                 
@@ -330,17 +332,31 @@ Shader "Hidden/RayMarch" {
                 float2 left = i.uv - float2(_MainTex_TexelSize.x, 0) * xRem;
                 float2 top = i.uv + float2(0, _MainTex_TexelSize.y) * (marchInterval - yRem);
                 float2 bottom = i.uv - float2(0, _MainTex_TexelSize.y) * yRem;
+                */
+                float xRem = mod(floor(pos.x), marchInterval);
+                float yRem = mod(floor(pos.y), marchInterval);
+
+                float2 rt = i.uv + float2(_MainTex_TexelSize.x * (marchInterval - xRem)
+                                             , _MainTex_TexelSize.y * (marchInterval - yRem));
+                float2 lb = i.uv - float2(_MainTex_TexelSize.x * xRem
+                                            , _MainTex_TexelSize.y * yRem);
+                float2 rb = i.uv + float2(_MainTex_TexelSize.x * (marchInterval - xRem)
+                                          , -_MainTex_TexelSize.y * yRem);
+                float2 lt = i.uv + float2(-_MainTex_TexelSize.x * xRem
+                                              , _MainTex_TexelSize.y * (marchInterval - yRem));
 
                 // alpha-value for x and y
-                float xp = xRem / marchInterval;
-                float yp = yRem / marchInterval;
+                float xa = xRem / marchInterval;
+                float ya = yRem / marchInterval;
 
-                fixed4 newCol = AddInterpolatedColor(top, bottom, yp, false);
-                newCol += AddInterpolatedColor(right, left, xp, true);
-                
+                fixed4 bottom = AddInterpolatedColor(rb, lb, xa, true);
+                fixed4 top = AddInterpolatedColor(rt, lt, xa, true);
+
+                fixed4 newCol = top * ya + bottom * (1 - ya);
+
                 // Since we add vertical and horizontal color, need to divide
-                newCol /= 2;
-                
+                //newCol /= 2;
+
                 return newCol;
             }
 
@@ -358,6 +374,7 @@ Shader "Hidden/RayMarch" {
                         return March(i);
                     }
                     else { // Interpolate the color
+                        //return fixed4(0,0,0,0);
                         return InterpolateColor(i);
                     }
                 }
