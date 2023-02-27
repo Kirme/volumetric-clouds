@@ -14,9 +14,9 @@ public class FPS : MonoBehaviour {
 
     private void Start() {
         timeLeft = interval;
-        shouldCalculate = true;
 
-        OpenFile();
+        if (shouldCalculate)
+            OpenFile();
     }
 
     private void Update() {
@@ -31,10 +31,13 @@ public class FPS : MonoBehaviour {
         }
     }
 
-    private void OpenFile() {
+    public void OpenFile() {
+        Debug.Log("File opened");
         string destination = "./eval/fps/" + GetComponent<Camera>().GetFileName() + ".txt";
 
         writer = new StreamWriter(destination, true);
+        shouldCalculate = true;
+        ResetFPS();
     }
 
     private void WriteToFile(int fps) {
@@ -48,6 +51,11 @@ public class FPS : MonoBehaviour {
 
     public void CloseFile() {
         shouldCalculate = false;
+        writer.Flush();
         writer.Close();
+    }
+
+    public void SetShouldCalculate(bool set) {
+        shouldCalculate = set;
     }
 }

@@ -11,13 +11,19 @@ public class Camera : MonoBehaviour {
     [Tooltip("For Evaluation")]
     [SerializeField] private Noise noise;
     [SerializeField] private List<Vector2Int> seeds;
+    [SerializeField] private bool shouldEvalFPS;
     
     private string fileName;
     private CinemachineTrackedDolly dolly;
     private int iteration = 0;
 
+    private FPS fps;
+
     private void Awake() {
         SetFileName();
+        fps = GetComponent<FPS>();
+
+        fps.SetShouldCalculate(shouldEvalFPS);
     }
 
     private void Start() {
@@ -42,11 +48,12 @@ public class Camera : MonoBehaviour {
         dolly.m_PathPosition = Mathf.Round(dolly.m_PathPosition * 100f) / 100f;
 
         if (IsAtWholeValue(dolly.m_PathPosition)) {
-            TakeScreenshot();
+            if (!shouldEvalFPS)
+                TakeScreenshot();
 
             // If on last position
-            if (dolly.m_PathPosition >= dolly.m_Path.MaxPos) {
-                GetComponent<FPS>().CloseFile();
+            if (shouldEvalFPS && dolly.m_PathPosition >= dolly.m_Path.MaxPos) {
+                fps.CloseFile();
             }
         }
     }
@@ -65,6 +72,9 @@ public class Camera : MonoBehaviour {
         if (SetSeed()) {
             noise.UpdateNoise();
             SetFileName();
+
+            if (shouldEvalFPS)
+                fps.OpenFile();
 
             dolly.m_PathPosition = 0; // Reset position
 
