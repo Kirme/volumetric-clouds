@@ -9,11 +9,13 @@ public class FPS : MonoBehaviour {
     private int frames = 0;
 
     private bool shouldCalculate;
+    private bool skippedFirst;
 
     private StreamWriter writer;
 
     private void Start() {
         timeLeft = interval;
+        skippedFirst = false;
 
         if (shouldCalculate)
             OpenFile();
@@ -26,7 +28,10 @@ public class FPS : MonoBehaviour {
         frames++;
 
         if (timeLeft <= 0) {
-            WriteToFile(frames);
+            // Skip first to avoid FPS outliars on startup
+            if (skippedFirst) WriteToFile(frames);
+            else skippedFirst = true;
+
             ResetFPS();
         }
     }
@@ -37,6 +42,8 @@ public class FPS : MonoBehaviour {
 
         writer = new StreamWriter(destination, true);
         shouldCalculate = true;
+        skippedFirst = false; // Skip first every iteration
+
         ResetFPS();
     }
 
