@@ -45,7 +45,7 @@ def fps_walk(root):
     it = 0
     for subdir, dirs, files in os.walk(root):
         for file in files:
-            sseed, dseed, interp, _ = re.split('_|.txt', file)
+            thresh, interp, _ = re.split('_|.txt', file)
             loc = root + '/' + file
 
             if (float(interp) == 0.0):
@@ -72,11 +72,11 @@ def fps_result():
 
     #plt.xticks(np.arange(0.2, 1.2, 0.2))
 
-    plt.savefig('fps.png')
+    plt.savefig('fpscov.png')
 
 # SSIM
 ssim = [0.0, 0.0, 0.0]
-def_pos = "1"
+def_cov = "0.1"
 
 def ssim_diff(dir, def_dir, it):
     image = cv2.imread(dir)
@@ -97,10 +97,10 @@ def ssim_walk(root):
     for subdir, dirs, files in os.walk(root):
         for file in files:
             if (dir != 'img'):
-                sseed, dseed, interp, pos = file.split('_')
+                pos, interp, thresh, _ = re.split('_|.png', file)
                 img_dir = root + '/' + file
 
-                if (pos != def_pos + ".png"):
+                if (thresh != def_cov):
                     continue
                 
                 if (float(interp) == 0.0):
@@ -120,13 +120,15 @@ def ssim_result():
     if (num_seeds != 0):
         actual_ssim = [x / num_seeds for x in ssim]
 
+    print(actual_ssim)
+
     plt.errorbar(thresholds, actual_ssim, stdev)
     plt.plot(thresholds, actual_ssim)
     plt.xlabel('nth interpolated')
     plt.ylabel('SSIM Value')
     plt.title('SSIM')
 
-    plt.savefig(str(pathlib.Path().resolve()) + '/graphs/pos-' + def_pos + '_ssim.png')
+    plt.savefig(str(pathlib.Path().resolve()) + '/graphs/coverage/thresh-' + def_cov + '_ssim.png')
 
 def print_single_ssim(first, second, root):
     first = cv2.imread(root + "/" + first)
@@ -134,28 +136,27 @@ def print_single_ssim(first, second, root):
 
     print(metrics.structural_similarity(cv2.imread(first), cv2.imread(second), multichannel=True))
 
-def ssim_reset(new_pos):
-    global values, ssim, num_seeds, def_pos
+def ssim_reset(new_cov):
+    global values, ssim, num_seeds, def_cov
 
     values = {}
     ssim = [0.0, 0.0, 0.0]
     num_seeds = 0
-    def_pos = new_pos
+    def_cov = new_cov
     plt.cla()
 
 def main():
     root = str(pathlib.Path().resolve())
 
     # Get graph of FPS vs n
-    fps_walk(root + '/fps')
+    fps_walk(root + '/coverage/fps')
     fps_result()
 
-    positions = 5
+    #cov = 0.5
 
-    #for pos in range(1,positions+1):
-        #ssim_reset(str(pos))
-        #ssim_walk(root + '/img')
-        #ssim_result()
+    #ssim_reset(str(cov))
+    #ssim_walk(root + '/coverage/img')
+    #ssim_result()
 
 if __name__ == "__main__":
     main()

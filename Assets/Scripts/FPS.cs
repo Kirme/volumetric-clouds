@@ -10,6 +10,7 @@ public class FPS : MonoBehaviour {
 
     private bool shouldCalculate;
     private bool skippedFirst;
+    private bool shouldEvalCoverage;
 
     private StreamWriter writer;
 
@@ -38,7 +39,13 @@ public class FPS : MonoBehaviour {
 
     public void OpenFile() {
         Debug.Log("File opened");
-        string destination = "./eval/fps/" + GetComponent<Camera>().GetFileName() + ".txt";
+
+        string folder = "./eval/fps/";
+
+        if (shouldEvalCoverage)
+            folder = "./eval/coverage/fps/";
+
+        string destination = folder + GetComponent<Camera>().GetFileName() + ".txt";
 
         writer = new StreamWriter(destination, true);
         shouldCalculate = true;
@@ -64,5 +71,9 @@ public class FPS : MonoBehaviour {
 
     public void SetShouldCalculate(bool set) {
         shouldCalculate = set;
+    }
+
+    public void SetShouldEvalCoverage(bool set) {
+        shouldEvalCoverage = set;
     }
 }
