@@ -123,7 +123,7 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!84 &677492816
+--- !u!84 &426439222
 RenderTexture:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -159,6 +159,43 @@ RenderTexture:
     m_WrapW: 0
   m_Dimension: 3
   m_VolumeDepth: 128
+  m_ShadowSamplingMode: 2
+--- !u!84 &582971339
+RenderTexture:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: _NoiseTex
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_ForcedFallbackFormat: 4
+  m_DownscaleFallback: 0
+  m_IsAlphaChannelOptional: 0
+  serializedVersion: 5
+  m_Width: 32
+  m_Height: 32
+  m_AntiAliasing: 1
+  m_MipCount: -1
+  m_DepthStencilFormat: 0
+  m_ColorFormat: 4
+  m_MipMap: 0
+  m_GenerateMips: 1
+  m_SRGB: 1
+  m_UseDynamicScale: 0
+  m_BindMS: 0
+  m_EnableCompatibleFormat: 1
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 1
+    m_Aniso: 1
+    m_MipBias: 0
+    m_WrapU: 0
+    m_WrapV: 0
+    m_WrapW: 0
+  m_Dimension: 3
+  m_VolumeDepth: 32
   m_ShadowSamplingMode: 2
 --- !u!1 &705507993
 GameObject:
@@ -334,7 +371,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
-  m_LocalRotation: {x: -0.16652475, y: 0.8071849, z: 0.2700159, w: 0.4978087}
+  m_LocalRotation: {x: -0.1665448, y: 0.807174, z: 0.27004838, w: 0.497802}
   m_LocalPosition: {x: -2349.3318, y: 32.60988, z: 1996.6775}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -362,6 +399,13 @@ MonoBehaviour:
   - {x: 0, y: 0}
   - {x: 654, y: 23}
   - {x: 2346, y: 87}
+  - {x: 567, y: 232}
+  - {x: 5675, y: 21}
+  - {x: 314, y: 8}
+  - {x: 1592, y: 932}
+  - {x: 6535, y: 7544}
+  - {x: 8979, y: 8899}
+  - {x: 3238, y: 774}
   shouldEvalFPS: 1
   shouldEvalCoverage: 1
 --- !u!114 &963194231
@@ -469,7 +513,7 @@ MonoBehaviour:
     roll: 0
   - position: {x: 2338.8848, y: 413.72925, z: -789.16284}
     roll: 0
-  - position: {x: 2998.4846, y: 251.47961, z: -681.78784}
+  - position: {x: 2998.4846, y: 262.9, z: -681.78784}
     roll: 0
 --- !u!4 &1031544089
 Transform:
@@ -515,8 +559,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a8221d724958354583b9580ac115365, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  shapeNoise: {fileID: 677492816}
-  detailNoise: {fileID: 1224062079}
+  shapeNoise: {fileID: 426439222}
+  detailNoise: {fileID: 582971339}
   computeShader: {fileID: 7200000, guid: 39e5879dc90c3124695d749f41b2a508, type: 3}
   shapeResolution: 128
   shapeCellCount: 4
@@ -539,43 +583,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!84 &1224062079
-RenderTexture:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: _NoiseTex
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_ForcedFallbackFormat: 4
-  m_DownscaleFallback: 0
-  m_IsAlphaChannelOptional: 0
-  serializedVersion: 5
-  m_Width: 32
-  m_Height: 32
-  m_AntiAliasing: 1
-  m_MipCount: -1
-  m_DepthStencilFormat: 0
-  m_ColorFormat: 4
-  m_MipMap: 0
-  m_GenerateMips: 1
-  m_SRGB: 1
-  m_UseDynamicScale: 0
-  m_BindMS: 0
-  m_EnableCompatibleFormat: 1
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 1
-    m_Aniso: 1
-    m_MipBias: 0
-    m_WrapU: 0
-    m_WrapV: 0
-    m_WrapW: 0
-  m_Dimension: 3
-  m_VolumeDepth: 32
-  m_ShadowSamplingMode: 2
 --- !u!1 &1358035706
 GameObject:
   m_ObjectHideFlags: 0
@@ -895,7 +902,7 @@ MonoBehaviour:
   marchInterval: 8
   movement: 0
   moveSpeed: 1
-  numSteps: 200
+  numSteps: 100
   cloudScale: 0.45
   densityMultiplier: 0.5
   densityThreshold: 0.25

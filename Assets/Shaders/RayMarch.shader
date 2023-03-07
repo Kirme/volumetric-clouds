@@ -175,9 +175,8 @@ Shader "Hidden/RayMarch" {
 
             // Gets total cloud density along ray
             float4 GetTransmittance(float3 rayOrigin, float3 rayDir, float distToBox, float distInBox, float depth, float blueNoise) {
-                float stepSize = distInBox / numSteps; // Step size based on number of steps
                 float limit = min(depth - distToBox, distInBox);
-
+                float stepSize = 10; // Constant step size
                 float rayOffset = (blueNoise - 0.5) * 2 * stepSize;
                 float distTravelled = rayOffset;
 
@@ -324,15 +323,6 @@ Shader "Hidden/RayMarch" {
             fixed4 InterpolateColor(v2f i) {
                 float2 pos = i.uv * _MainTex_TexelSize.zw;
 
-                /*
-                float xRem = mod(pos.x - pos.y, marchInterval);
-                float yRem = mod(pos.y - pos.x, marchInterval);
-                
-                float2 right = i.uv + float2(_MainTex_TexelSize.x, 0) * (marchInterval - xRem);
-                float2 left = i.uv - float2(_MainTex_TexelSize.x, 0) * xRem;
-                float2 top = i.uv + float2(0, _MainTex_TexelSize.y) * (marchInterval - yRem);
-                float2 bottom = i.uv - float2(0, _MainTex_TexelSize.y) * yRem;
-                */
                 float xRem = mod(floor(pos.x), marchInterval);
                 float yRem = mod(floor(pos.y), marchInterval);
 
@@ -354,9 +344,6 @@ Shader "Hidden/RayMarch" {
 
                 fixed4 newCol = top * ya + bottom * (1 - ya);
 
-                // Since we add vertical and horizontal color, need to divide
-                //newCol /= 2;
-
                 return newCol;
             }
 
@@ -366,7 +353,6 @@ Shader "Hidden/RayMarch" {
                     return March(i);
                 }
                 
-                //float2 pixelPos = float2(i.screenPos.x * _ScreenParams.x, i.screenPos.y * _ScreenParams.y);
                 float2 pixelPos = i.uv * _MainTex_TexelSize.zw;
 
                 if (ShouldEvaluate(pixelPos, isFirstIteration)) {
@@ -374,7 +360,6 @@ Shader "Hidden/RayMarch" {
                         return March(i);
                     }
                     else { // Interpolate the color
-                        //return fixed4(0,0,0,0);
                         return InterpolateColor(i);
                     }
                 }
