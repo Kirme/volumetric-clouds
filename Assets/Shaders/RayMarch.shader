@@ -319,6 +319,28 @@ Shader "Hidden/RayMarch" {
                 return (x % m + m) % m;
             }
 
+            float StandardDeviation(float a, float b, float c, float d) {
+                float amount = 4;
+                float avg = (a+b+c+d) / amount;
+
+                float sum = pow(a - avg, 2) + pow(b - avg, 2) +
+                            pow(c - avg, 2) + pow(d - avg, 2);
+
+                return sqrt(sum / (amount - 1));
+            }
+
+            bool MeetsCoherenceThresholdHelper(float rt, float rb, float lt, float lb) {
+                return StandardDeviation(rt, rb, lt, lb) <= coherence;
+            }
+
+            // Are the four corners similar enough for us to interpolate?
+            bool MeetsCoherenceThreshold(fixed4 rt, fixed4 rb, fixed4 lt, fixed4 lb) {
+                return MeetsCoherenceThresholdHelper(rt.r, rb.r, lt.r, lb.r) &&
+                       MeetsCoherenceThresholdHelper(rt.g, rb.g, lt.g, lb.g) &&
+                       MeetsCoherenceThresholdHelper(rt.b, rb.b, lt.b, lb.b) &&
+                       MeetsCoherenceThresholdHelper(rt.a, rb.a, lt.a, lb.a);
+            }
+
             // Interpolate pixel color based on already ray marched pixels
             fixed4 InterpolateColor(v2f i) {
                 float2 pos = i.uv * _MainTex_TexelSize.zw;
@@ -326,14 +348,24 @@ Shader "Hidden/RayMarch" {
                 float xRem = mod(floor(pos.x), marchInterval);
                 float yRem = mod(floor(pos.y), marchInterval);
 
+                // Right top
                 float2 rt = i.uv + float2(_MainTex_TexelSize.x * (marchInterval - xRem)
-                                             , _MainTex_TexelSize.y * (marchInterval - yRem));
-                float2 lb = i.uv - float2(_MainTex_TexelSize.x * xRem
-                                            , _MainTex_TexelSize.y * yRem);
+                                          , _MainTex_TexelSize.y * (marchInterval - yRem));
+                // Right bottom
                 float2 rb = i.uv + float2(_MainTex_TexelSize.x * (marchInterval - xRem)
                                           , -_MainTex_TexelSize.y * yRem);
+                // Left top
                 float2 lt = i.uv + float2(-_MainTex_TexelSize.x * xRem
-                                              , _MainTex_TexelSize.y * (marchInterval - yRem));
+                                          , _MainTex_TexelSize.y * (marchInterval - yRem));
+                // Left bottom
+                float2 lb = i.uv - float2(_MainTex_TexelSize.x * xRem
+                                          , _MainTex_TexelSize.y * yRem);
+
+                // If not coherent enough, march
+                if (!MeetsCoherenceThreshold(tex2D(_MainTex, rt), tex2D(_MainTex, rb),
+                                             tex2D(_MainTex, lt), tex2D(_MainTex, lb))) {
+                    return March(i);
+                }
 
                 // alpha-value for x and y
                 float xa = xRem / marchInterval;

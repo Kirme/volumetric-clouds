@@ -24,7 +24,7 @@ public class Camera : MonoBehaviour {
             clouds.densityThreshold = 0.5f;
 
         if (eval.parameter == Evaluation.Parameter.Coherence)
-            eval.coherence = 1.0f;
+            eval.coherence = 0.4f; // Since max stddev is 0.333...
 
         SetFileName();
         fps = GetComponent<FPS>();
@@ -169,7 +169,7 @@ public class Camera : MonoBehaviour {
 
     private bool SetCoherence() {
         float minCoherence = 0.0f;
-        float step = 0.1f;
+        float step = 0.05f;
 
         if (eval.coherence >= minCoherence + step) {
             eval.coherence -= step;
