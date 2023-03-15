@@ -10,17 +10,7 @@ public class Clouds : MonoBehaviour
     [Tooltip("Counters banding caused by long step lengths in ray marcher")]
     [SerializeField] private Texture2D blueNoise;
 
-    public enum March {
-        _2 = 2,
-        _4 = 4,
-        _8 = 8
-    }
-
-    [Tooltip("Should it interpolate every other pixel?")]
-    public bool useInterpolation;
-
-    [Tooltip("Only march every nth pixel")]
-    public March marchInterval;
+    [SerializeField] private Evaluation eval;
 
     [Header("Movement")]
     [SerializeField] private bool movement = false;
@@ -36,9 +26,6 @@ public class Clouds : MonoBehaviour
     public float densityThreshold;
 
     [SerializeField] private Vector3 offset;
-
-    [Range(0, 1)]
-    [SerializeField] private float globalCoverage;
 
     [SerializeField] private Vector4 shapeNoiseWeights;
 
@@ -78,7 +65,7 @@ public class Clouds : MonoBehaviour
         material.SetTexture("DetailNoise", noise.GetDetailNoise());
         material.SetTexture("blueNoise", blueNoise);
 
-        if (useInterpolation) {
+        if (eval.useInterpolation) {
             RunShaderTwice(source, destination);
         } else {
             Graphics.Blit(source, destination, material);
@@ -99,9 +86,11 @@ public class Clouds : MonoBehaviour
 
     private void SetProperties() {
         // Need to convert to int due to no support for setting a material's bool
-        int interpolate = useInterpolation ? 1 : 0;
+        int interpolate = eval.useInterpolation ? 1 : 0;
         material.SetInt("useInterpolation", interpolate);
-        material.SetInt("marchInterval", (int) marchInterval);
+        material.SetInt("marchInterval", (int) eval.marchInterval);
+
+        material.SetFloat("coherence", eval.coherence);
     
         // Shape
         material.SetVector("cloudOffset", offset);
@@ -109,7 +98,6 @@ public class Clouds : MonoBehaviour
         material.SetFloat("densityThreshold", densityThreshold);
         material.SetFloat("densityMultiplier", densityMultiplier);
         material.SetInt("numSteps", numSteps);
-        material.SetFloat("gc", globalCoverage);
         material.SetVector("shapeNoiseWeights", shapeNoiseWeights);
 
         // Detail

@@ -60,10 +60,10 @@ Shader "Hidden/RayMarch" {
             float densityMultiplier;
             int numSteps;
 
-            float gc;
-
             float4 shapeNoiseWeights;
             float3 detailNoiseWeights;
+
+            float coherence;
 
             // Lighting parameters
             float lightAbsorption;

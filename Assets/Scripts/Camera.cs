@@ -11,8 +11,7 @@ public class Camera : MonoBehaviour {
     [Tooltip("For Evaluation")]
     [SerializeField] private Noise noise;
     [SerializeField] private List<Vector2Int> seeds;
-    [SerializeField] private bool shouldEvalFPS;
-    [SerializeField] private bool shouldEvalCoverage;
+    [SerializeField] private Evaluation eval;
 
     private string fileName;
     private CinemachineTrackedDolly dolly;
@@ -21,14 +20,14 @@ public class Camera : MonoBehaviour {
     private FPS fps;
 
     private void Awake() {
-        if (shouldEvalCoverage)
+        if (eval.parameter == Evaluation.Parameter.Coverage)
             clouds.densityThreshold = 0.5f;
 
         SetFileName();
         fps = GetComponent<FPS>();
 
-        fps.SetShouldCalculate(shouldEvalFPS);
-        fps.SetShouldEvalCoverage(shouldEvalCoverage);
+        fps.SetShouldCalculate(eval.metric == Evaluation.Metric.FPS);
+        fps.SetEval(eval);
     }
 
     private void Start() {
@@ -53,42 +52,61 @@ public class Camera : MonoBehaviour {
         dolly.m_PathPosition = Mathf.Round(dolly.m_PathPosition * 100f) / 100f;
 
         if (IsAtWholeValue(dolly.m_PathPosition)) {
-            if (!shouldEvalFPS)
+            if (eval.metric == Evaluation.Metric.IMG)
                 TakeScreenshot();
 
             // If on last position
-            if (shouldEvalFPS && dolly.m_PathPosition >= dolly.m_Path.MaxPos) {
+            if (eval.metric == Evaluation.Metric.FPS &&
+                dolly.m_PathPosition >= dolly.m_Path.MaxPos) {
                 fps.CloseFile();
             }
         }
     }
 
     private void SetFileName() {
-        int march = clouds.useInterpolation ? (int)clouds.marchInterval : 0;
+        int march = eval.useInterpolation ? (int) eval.marchInterval : 0;
 
         // Name is "shapeSeed_detailSeed_marchInterval_pathPosition", for eval of seeds
         fileName = noise.shapeSeed + "_" + noise.detailSeed + "_" + march;
 
         // Name is "pathPosition_marchInterval_densityThreshold", for eval of coverage
-        if (shouldEvalCoverage) {
+        if (eval.parameter == Evaluation.Parameter.Coverage) {
             fileName = march + "_" + clouds.densityThreshold;
 
             // To order correctly, name is reversed for eval of fps
-            if (shouldEvalFPS)
+            if (eval.metric == Evaluation.Metric.FPS)
                 fileName = clouds.densityThreshold + "_" + march;
         }
-            
+        
+        if (eval.coherence > 0) {
+            fileName = eval.coherence + "_" + march;
+        }
     }
 
     private bool HasNextIteration() {
-        bool hasNext = shouldEvalCoverage ? SetCoverage() : SetSeed();
+        bool hasNext;
+
+        switch(eval.parameter) {
+            case Evaluation.Parameter.Seed:
+                hasNext = SetSeed();
+                break;
+            case Evaluation.Parameter.Coverage:
+                hasNext = SetCoverage();
+                break;
+            case Evaluation.Parameter.Coherence:
+                hasNext = SetCoherence();
+                break;
+            default:
+                hasNext = false;
+                break;
+        }
 
         if (hasNext) {
-            if (!shouldEvalCoverage)
+            if (eval.parameter == Evaluation.Parameter.Seed)
                 noise.UpdateNoise();
             SetFileName();
 
-            if (shouldEvalFPS)
+            if (eval.metric == Evaluation.Metric.FPS)
                 fps.OpenFile();
 
             dolly.m_PathPosition = 0; // Reset position
@@ -102,14 +120,12 @@ public class Camera : MonoBehaviour {
     private void TakeScreenshot() {
         string name = fileName + "_" + dolly.m_PathPosition + ".png";
 
-        string folder = "./eval/img/";
+        string folder = eval.GetFolder() + "/img/";
 
-        if (shouldEvalCoverage) {
-            folder = "./eval/coverage/img/";
+        if (eval.parameter == Evaluation.Parameter.Coverage) {
             // Different name order due to different ordering in eval
             name = dolly.m_PathPosition + "_" + fileName + ".png";
         }
-            
 
         ScreenCapture.CaptureScreenshot(folder + name);
     }
@@ -138,6 +154,17 @@ public class Camera : MonoBehaviour {
         
         if (clouds.densityThreshold >= minDensity + 0.1f) {
             clouds.densityThreshold -= 0.1f;
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool SetCoherence() {
+        float minCoherence = 0.1f;
+
+        if (eval.coherence >= minCoherence + 0.1f) {
+            eval.coherence -= 0.1f;
             return true;
         }
 
