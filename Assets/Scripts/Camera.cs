@@ -23,6 +23,9 @@ public class Camera : MonoBehaviour {
         if (eval.parameter == Evaluation.Parameter.Coverage)
             clouds.densityThreshold = 0.5f;
 
+        if (eval.parameter == Evaluation.Parameter.Coherence)
+            eval.coherence = 1.0f;
+
         SetFileName();
         fps = GetComponent<FPS>();
 
@@ -66,20 +69,24 @@ public class Camera : MonoBehaviour {
     private void SetFileName() {
         int march = eval.useInterpolation ? (int) eval.marchInterval : 0;
 
-        // Name is "shapeSeed_detailSeed_marchInterval_pathPosition", for eval of seeds
-        fileName = noise.shapeSeed + "_" + noise.detailSeed + "_" + march;
+        fileName = "";
 
-        // Name is "pathPosition_marchInterval_densityThreshold", for eval of coverage
-        if (eval.parameter == Evaluation.Parameter.Coverage) {
-            fileName = march + "_" + clouds.densityThreshold;
+        switch(eval.parameter) {
+            case Evaluation.Parameter.Seed:
+                // Name is "shapeSeed_detailSeed_marchInterval_pathPosition", for eval of seeds
+                fileName = noise.shapeSeed + "_" + noise.detailSeed + "_" + march;
+                break;
+            case Evaluation.Parameter.Coverage:
+                // Name is "pathPosition_marchInterval_densityThreshold", for eval of coverage
+                fileName = march + "_" + clouds.densityThreshold;
 
-            // To order correctly, name is reversed for eval of fps
-            if (eval.metric == Evaluation.Metric.FPS)
-                fileName = clouds.densityThreshold + "_" + march;
-        }
-        
-        if (eval.coherence > 0) {
-            fileName = eval.coherence + "_" + march;
+                // To order correctly, name is reversed for eval of fps
+                if (eval.metric == Evaluation.Metric.FPS)
+                    fileName = clouds.densityThreshold + "_" + march;
+                break;
+            case Evaluation.Parameter.Coherence:
+                fileName = eval.coherence + "_" + march;
+                break;
         }
     }
 
@@ -161,10 +168,11 @@ public class Camera : MonoBehaviour {
     }
 
     private bool SetCoherence() {
-        float minCoherence = 0.1f;
+        float minCoherence = 0.0f;
+        float step = 0.1f;
 
-        if (eval.coherence >= minCoherence + 0.1f) {
-            eval.coherence -= 0.1f;
+        if (eval.coherence >= minCoherence + step) {
+            eval.coherence -= step;
             return true;
         }
 
