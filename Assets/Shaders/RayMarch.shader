@@ -65,6 +65,8 @@ Shader "Hidden/RayMarch" {
 
             float coherence;
 
+            int showInterpolation;
+
             // Lighting parameters
             float lightAbsorption;
             int numSunSteps;
@@ -237,6 +239,22 @@ Shader "Hidden/RayMarch" {
                 return numSteps <= 0;
             }
 
+            bool HitBox(v2f i) {
+                // Get ray origin and direction
+                float3 rayOrigin = _WorldSpaceCameraPos;
+                float3 rayDir = normalize(i.viewVector);
+
+                // Gets depth based on camera depth texture
+                float nlDepth = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, i.uv);
+                float depth = LinearEyeDepth(nlDepth) * length(i.viewVector);
+
+                // Get distance to and in cloud box
+                float2 rayBox = RayBoxDist(boundsMin, boundsMax, rayOrigin, rayDir);
+
+                // True if hit box
+                return rayBox.y > 0 && rayBox.x < depth;
+            }
+
             fixed4 March(v2f i) {
                 fixed4 col = tex2D(_MainTex, i.uv);
 
@@ -255,11 +273,6 @@ Shader "Hidden/RayMarch" {
                 float2 rayBox = RayBoxDist(boundsMin, boundsMax, rayOrigin, rayDir);
                 float distToBox = rayBox.x;
                 float distInBox = rayBox.y;
-
-                // Return if not hit box
-                bool rayHit = distInBox > 0 && distToBox < depth;
-                if (!rayHit)
-                    return col;
 
                 float blueNoise = BlueNoise.SampleLevel(samplerBlueNoise, i.uv, 0);
 
@@ -330,7 +343,7 @@ Shader "Hidden/RayMarch" {
             }
 
             bool MeetsCoherenceThresholdHelper(float rt, float rb, float lt, float lb) {
-                return StandardDeviation(rt, rb, lt, lb) <= coherence;
+                return StandardDeviation(rt, rb, lt, lb) < coherence;
             }
 
             // Are the four corners similar enough for us to interpolate?
@@ -376,10 +389,18 @@ Shader "Hidden/RayMarch" {
 
                 fixed4 newCol = top * ya + bottom * (1 - ya);
 
+                if (showInterpolation) {
+                    return fixed4(0, newCol.g, 0, newCol.a);
+                }
+
                 return newCol;
             }
 
             fixed4 frag (v2f i) : SV_Target {
+                // Check that we hit the box
+                if (!HitBox(i))
+                    return tex2D(_MainTex, i.uv);
+
                 // Normal raymarch
                 if (!useInterpolation) {
                     return March(i);

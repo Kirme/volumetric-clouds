@@ -20,8 +20,8 @@ def get_stddev():
 
     return stdev
 
-fps = [0, 0, 0, 0]
-thresholds = [0.0, 2.0, 4.0, 8.0]
+fps = [0, 0, 0, 0, 0]
+coverages = [0.1, 0.2, 0.3, 0.4, 0.5]
 
 def get_fps(file, it):
     with open(file, newline='') as csvfile:
@@ -29,54 +29,48 @@ def get_fps(file, it):
         
         sum = 0
         amount = 0
+        print("------")
         for row in reader:
             if not it in values:
                 values[it] = []
 
             values[it].append(int(row[0]))
             sum += int(row[0])
+            print(int(row[0]))
             amount += 1
 
         fps[it] += sum / amount
 
 def fps_walk(root):
-    global num_seeds
-
-    it = 0
     for subdir, dirs, files in os.walk(root):
         for file in files:
-            thresh, interp, _ = re.split('_|.txt', file)
+            thresh, _, _ = re.split('_|.txt', file)
             loc = root + '/' + file
 
-            if (float(interp) == 0.0):
-                num_seeds += 1
-                it = 0
-                get_fps(loc, it)
-            else:
-                it += 1
-                get_fps(loc, it)
+            index = float(thresh) / 0.1
+
+            index = int(round(index) - 1)
+            get_fps(loc, index)
 
 def fps_result():
-    actual_fps = fps
+    actual_fps = [x / 4 for x in fps]
 
     stdev = get_stddev()
 
-    if (num_seeds != 0):
-        actual_fps = [x / num_seeds for x in fps]
+    print(actual_fps)
 
-    plt.errorbar(thresholds, actual_fps, stdev)
-    plt.plot(thresholds, actual_fps)
-    plt.xlabel('nth interpolated')
+    plt.errorbar(coverages, actual_fps, stdev)
+    plt.plot(coverages, actual_fps)
+    plt.xlabel('Coverage Threshold')
     plt.ylabel('FPS difference')
-    plt.title('FPS based on n')
-
-    #plt.xticks(np.arange(0.2, 1.2, 0.2))
+    plt.title('FPS based on coverage')
 
     plt.savefig('fpscov.png')
 
 # SSIM
 ssim = [0.0, 0.0, 0.0]
 def_cov = "0.1"
+thresholds = [2.0, 4.0, 8.0]
 
 def ssim_diff(dir, def_dir, it):
     image = cv2.imread(dir)

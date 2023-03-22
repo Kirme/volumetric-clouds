@@ -32,8 +32,10 @@ public class Evaluation : MonoBehaviour
     [Tooltip("Raymarch every nth pixel")]
     public March marchInterval;
 
-    [Range(0.0f, 0.5f)]
+    [Range(0.0f, 0.6f)]
     public float coherence;
+
+    public bool showInterpolation;
 
     private string folder;
 

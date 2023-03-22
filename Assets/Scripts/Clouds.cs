@@ -91,6 +91,7 @@ public class Clouds : MonoBehaviour
         material.SetInt("marchInterval", (int) eval.marchInterval);
 
         material.SetFloat("coherence", eval.coherence);
+        material.SetInt("showInterpolation", eval.showInterpolation ? 1 : 0);
     
         // Shape
         material.SetVector("cloudOffset", offset);
