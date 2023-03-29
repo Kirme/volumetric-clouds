@@ -154,12 +154,11 @@ def main():
     root = str(pathlib.Path().resolve())
 
     # Get graph of FPS vs n
-    fps_walk(root + '/coherence/fps')
-    fps_result()
+    #fps_walk(root + '/coherence/fps')
+    #fps_result()
 
-    #ssim_reset()
-    #ssim_walk(root + '/coherence/img')
-    #ssim_result()
+    ssim_walk(root + '/coherence/img')
+    ssim_result()
 
 if __name__ == "__main__":
     main()

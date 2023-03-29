@@ -1,6 +1,7 @@
 Shader "Hidden/RayMarch" {
     Properties {
         _MainTex ("Texture", 2D) = "white" {}
+        _SourceTex ("Texture", 2D) = "white" {}
     }
     SubShader {
         // No culling or depth
@@ -31,6 +32,8 @@ Shader "Hidden/RayMarch" {
             float4 _MainTex_TexelSize;
 
             sampler2D _CameraDepthTexture;
+
+            sampler2D _SourceTex;
 
             // Noise
             Texture3D<float4> ShapeNoise;
@@ -63,7 +66,7 @@ Shader "Hidden/RayMarch" {
             float4 shapeNoiseWeights;
             float3 detailNoiseWeights;
 
-            float coherence;
+            float maxPixelDiff;
 
             int showInterpolation;
 
@@ -256,7 +259,7 @@ Shader "Hidden/RayMarch" {
             }
 
             fixed4 March(v2f i) {
-                fixed4 col = tex2D(_MainTex, i.uv);
+                fixed4 col = tex2D(_SourceTex, i.uv);
 
                 if (ShouldExitEarly())
                     return col;
@@ -342,16 +345,16 @@ Shader "Hidden/RayMarch" {
                 return sqrt(sum / (amount - 1));
             }
 
-            bool MeetsCoherenceThresholdHelper(float rt, float rb, float lt, float lb) {
-                return StandardDeviation(rt, rb, lt, lb) < coherence;
+            bool MeetsDifferenceThresholdHelper(float rt, float rb, float lt, float lb) {
+                return StandardDeviation(rt, rb, lt, lb) < maxPixelDiff;
             }
 
             // Are the four corners similar enough for us to interpolate?
-            bool MeetsCoherenceThreshold(fixed4 rt, fixed4 rb, fixed4 lt, fixed4 lb) {
-                return MeetsCoherenceThresholdHelper(rt.r, rb.r, lt.r, lb.r) &&
-                       MeetsCoherenceThresholdHelper(rt.g, rb.g, lt.g, lb.g) &&
-                       MeetsCoherenceThresholdHelper(rt.b, rb.b, lt.b, lb.b) &&
-                       MeetsCoherenceThresholdHelper(rt.a, rb.a, lt.a, lb.a);
+            bool MeetsDifferenceThreshold(fixed4 rt, fixed4 rb, fixed4 lt, fixed4 lb) {
+                return MeetsDifferenceThresholdHelper(rt.r, rb.r, lt.r, lb.r) &&
+                       MeetsDifferenceThresholdHelper(rt.g, rb.g, lt.g, lb.g) &&
+                       MeetsDifferenceThresholdHelper(rt.b, rb.b, lt.b, lb.b) &&
+                       MeetsDifferenceThresholdHelper(rt.a, rb.a, lt.a, lb.a);
             }
 
             // Interpolate pixel color based on already ray marched pixels
@@ -375,7 +378,7 @@ Shader "Hidden/RayMarch" {
                                           , _MainTex_TexelSize.y * yRem);
 
                 // If not coherent enough, march
-                if (!MeetsCoherenceThreshold(tex2D(_MainTex, rt), tex2D(_MainTex, rb),
+                if (!MeetsDifferenceThreshold(tex2D(_MainTex, rt), tex2D(_MainTex, rb),
                                              tex2D(_MainTex, lt), tex2D(_MainTex, lb))) {
                     return March(i);
                 }
@@ -407,7 +410,7 @@ Shader "Hidden/RayMarch" {
                 }
                 
                 float2 pixelPos = i.uv * _MainTex_TexelSize.zw;
-
+                
                 if (ShouldEvaluate(pixelPos, isFirstIteration)) {
                     if (isFirstIteration) { // We should just ray march
                         return March(i);

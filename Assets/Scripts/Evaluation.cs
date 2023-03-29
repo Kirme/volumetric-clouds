@@ -33,7 +33,7 @@ public class Evaluation : MonoBehaviour
     public March marchInterval;
 
     [Range(0.0f, 0.6f)]
-    public float coherence;
+    public float maxPixelDifference;
 
     public bool showInterpolation;
 

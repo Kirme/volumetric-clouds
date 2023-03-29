@@ -65,6 +65,8 @@ public class Clouds : MonoBehaviour
         material.SetTexture("DetailNoise", noise.GetDetailNoise());
         material.SetTexture("blueNoise", blueNoise);
 
+        material.SetTexture("_SourceTex", source); // Used for ray marching
+
         if (eval.useInterpolation) {
             RunShaderTwice(source, destination);
         } else {
@@ -90,7 +92,7 @@ public class Clouds : MonoBehaviour
         material.SetInt("useInterpolation", interpolate);
         material.SetInt("marchInterval", (int) eval.marchInterval);
 
-        material.SetFloat("coherence", eval.coherence);
+        material.SetFloat("maxPixelDiff", eval.maxPixelDifference);
         material.SetInt("showInterpolation", eval.showInterpolation ? 1 : 0);
     
         // Shape
