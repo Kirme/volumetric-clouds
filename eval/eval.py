@@ -21,7 +21,7 @@ def get_stddev():
     return stdev
 
 fps = [0, 0, 0, 0]
-thresholds = [0.0, 2.0, 4.0, 8.0]
+thresholds = [2.0, 4.0, 8.0]
 
 def get_fps(file, it):
     with open(file, newline='') as csvfile:
@@ -66,7 +66,7 @@ def fps_result():
 
     plt.errorbar(thresholds, actual_fps, stdev)
     plt.plot(thresholds, actual_fps)
-    plt.xlabel('nth interpolated')
+    plt.xlabel('nth ray marched')
     plt.ylabel('FPS difference')
     plt.title('FPS based on n')
 
@@ -122,7 +122,7 @@ def ssim_result():
 
     plt.errorbar(thresholds, actual_ssim, stdev)
     plt.plot(thresholds, actual_ssim)
-    plt.xlabel('nth interpolated')
+    plt.xlabel('nth ray marched')
     plt.ylabel('SSIM Value')
     plt.title('SSIM')
 
@@ -147,15 +147,15 @@ def main():
     root = str(pathlib.Path().resolve())
 
     # Get graph of FPS vs n
-    fps_walk(root + '/fps')
-    fps_result()
+    #fps_walk(root + '/fps')
+    #fps_result()
 
     positions = 5
 
-    #for pos in range(1,positions+1):
-        #ssim_reset(str(pos))
-        #ssim_walk(root + '/img')
-        #ssim_result()
+    for pos in range(1,positions+1):
+        ssim_reset(str(pos))
+        ssim_walk(root + '/img')
+        ssim_result()
 
 if __name__ == "__main__":
     main()

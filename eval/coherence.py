@@ -63,9 +63,9 @@ def fps_result():
 
     plt.errorbar(coherences, actual_fps, stdev)
     plt.plot(coherences, actual_fps)
-    plt.xlabel('coherence')
+    plt.xlabel('Coherence')
     plt.ylabel('FPS')
-    plt.title('FPS based on coherence')
+    plt.title('FPS based on Coherence')
 
     plt.savefig('fpscoh.png')
 
@@ -130,9 +130,9 @@ def ssim_result():
 
     plt.errorbar(coherences, actual_ssim, stdev)
     plt.plot(coherences, actual_ssim)
-    plt.xlabel('coherence')
+    plt.xlabel('Coherence')
     plt.ylabel('SSIM Value')
-    plt.title('SSIM')
+    plt.title('SSIM based on Coherence')
 
     plt.savefig(str(pathlib.Path().resolve()) + '/graphs/coherence-ssim.png')
 
@@ -154,12 +154,12 @@ def main():
     root = str(pathlib.Path().resolve())
 
     # Get graph of FPS vs n
-    #fps_walk(root + '/coherence/fps')
-    #fps_result()
+    fps_walk(root + '/coherence/fps')
+    fps_result()
 
     #ssim_reset()
-    ssim_walk(root + '/coherence/img')
-    ssim_result()
+    #ssim_walk(root + '/coherence/img')
+    #ssim_result()
 
 if __name__ == "__main__":
     main()

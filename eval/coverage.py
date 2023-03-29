@@ -118,7 +118,7 @@ def ssim_result():
 
     plt.errorbar(thresholds, actual_ssim, stdev)
     plt.plot(thresholds, actual_ssim)
-    plt.xlabel('nth interpolated')
+    plt.xlabel('nth ray marched')
     plt.ylabel('SSIM Value')
     plt.title('SSIM')
 
@@ -143,14 +143,14 @@ def main():
     root = str(pathlib.Path().resolve())
 
     # Get graph of FPS vs n
-    fps_walk(root + '/coverage/fps')
-    fps_result()
+    #fps_walk(root + '/coverage/fps')
+    #fps_result()
 
-    #cov = 0.5
+    cov = 0.1
 
-    #ssim_reset(str(cov))
-    #ssim_walk(root + '/coverage/img')
-    #ssim_result()
+    ssim_reset(str(cov))
+    ssim_walk(root + '/coverage/img')
+    ssim_result()
 
 if __name__ == "__main__":
     main()
