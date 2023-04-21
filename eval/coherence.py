@@ -63,9 +63,9 @@ def fps_result():
 
     plt.errorbar(coherences, actual_fps, stdev)
     plt.plot(coherences, actual_fps)
-    plt.xlabel('Coherence')
+    plt.xlabel('Max Pixel Difference')
     plt.ylabel('FPS')
-    plt.title('FPS based on Coherence')
+    plt.title('FPS based on Adaptive Sampling')
 
     plt.savefig('fpscoh.png')
 
@@ -78,7 +78,7 @@ all_files = {}
 def ssim_diff(dir, def_dir, it):
     image = cv2.imread(dir)
     def_image = cv2.imread(def_dir)
-
+    
     sim = metrics.structural_similarity(def_image, image, multichannel=True)
     ssim[it] += sim
 
@@ -130,9 +130,9 @@ def ssim_result():
 
     plt.errorbar(coherences, actual_ssim, stdev)
     plt.plot(coherences, actual_ssim)
-    plt.xlabel('Coherence')
+    plt.xlabel('Max Pixel Difference')
     plt.ylabel('SSIM Value')
-    plt.title('SSIM based on Coherence')
+    plt.title('SSIM based on Adaptive Sampling')
 
     plt.savefig(str(pathlib.Path().resolve()) + '/graphs/coherence-ssim.png')
 
@@ -140,7 +140,7 @@ def print_single_ssim(first, second, root):
     first = cv2.imread(root + "/" + first)
     second = cv2.imread(root + "/" + second)
 
-    print(metrics.structural_similarity(cv2.imread(first), cv2.imread(second), multichannel=True))
+    print(metrics.structural_similarity(first, second, multichannel=True))
 
 def ssim_reset():
     global values, ssim, num_seeds
@@ -154,11 +154,13 @@ def main():
     root = str(pathlib.Path().resolve())
 
     # Get graph of FPS vs n
-    #fps_walk(root + '/coherence/fps')
-    #fps_result()
+    fps_walk(root + '/coherence/fps')
+    fps_result()
 
-    ssim_walk(root + '/coherence/img')
-    ssim_result()
+    #ssim_walk(root + '/coherence/img')
+    #ssim_result()
+
+    #print_single_ssim("0_8_2.png", "0.25_8_2.png", root + "/coherence/img")
 
 if __name__ == "__main__":
     main()

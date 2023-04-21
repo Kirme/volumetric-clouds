@@ -4,12 +4,12 @@ using UnityEngine;
 using System.IO;
 
 public class FPS : MonoBehaviour {
-    private float interval = 1.0f;
-    private float timeLeft = 0;
-    private int frames = 0;
+    private float interval = 1.0f; // How often to evaluate FPS (in seconds)
+    private float timeLeft = 0; // How much time left until new iteration
+    private int frames = 0; // How many frames in current iteration
 
-    private bool shouldCalculate;
-    private bool skippedFirst;
+    private bool shouldCalculate; // Should we calculate FPS?
+    private bool skippedFirst; // Have we already skipped one iteration?
 
     private Evaluation eval;
     private StreamWriter writer;
@@ -37,6 +37,7 @@ public class FPS : MonoBehaviour {
         }
     }
 
+    // Open a file to write in
     public void OpenFile() {
         string folder = eval.GetFolder() + "/fps/";
 
@@ -49,15 +50,18 @@ public class FPS : MonoBehaviour {
         ResetFPS();
     }
 
+    // Write fps to file
     private void WriteToFile(int fps) {
         writer.WriteLine(fps);
     }
 
+    // Reset parameters before new iteration
     private void ResetFPS() {
         timeLeft = interval;
         frames = 0;
     }
 
+    // Close file and stop calculating FPS
     public void CloseFile() {
         shouldCalculate = false;
         writer.Flush();

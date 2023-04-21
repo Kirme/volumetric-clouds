@@ -152,10 +152,12 @@ def main():
 
     positions = 5
 
-    for pos in range(1,positions+1):
-        ssim_reset(str(pos))
-        ssim_walk(root + '/img')
-        ssim_result()
+    #for pos in range(1,positions+1):
+        #ssim_reset(str(pos))
+        #ssim_walk(root + '/img')
+        #ssim_result()
+
+    print_single_ssim()
 
 if __name__ == "__main__":
     main()

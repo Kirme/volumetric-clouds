@@ -4,11 +4,13 @@ using UnityEngine;
 
 public class Evaluation : MonoBehaviour
 {
+    // The metric being evaluated
     public enum Metric {
         IMG = 0,
         FPS = 1
     }
 
+    // The parameter being evaluated
     public enum Parameter {
         Seed = 0,
         Coverage = 1,
@@ -17,10 +19,10 @@ public class Evaluation : MonoBehaviour
 
     [Tooltip("Eval FPS or take screenshots")]
     public Metric metric;
-    [Tooltip("Eval different coverages or seeds")]
+    [Tooltip("Eval different coverages, seeds or coherences")]
     public Parameter parameter;
     
-    [Tooltip("Should it interpolate every other pixel?")]
+    [Tooltip("Should it interpolate pixels?")]
     public bool useInterpolation;
 
     public enum March {
@@ -39,7 +41,9 @@ public class Evaluation : MonoBehaviour
 
     private string folder;
 
+    // Executed when a value is altered in inspector
     private void OnValidate() {
+        // Switch folder to separate evaluation data
         switch(parameter) {
             case Parameter.Seed:
                 folder = "./eval";
