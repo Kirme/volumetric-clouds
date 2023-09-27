@@ -62,7 +62,7 @@ def fps_result():
     plt.errorbar(coverages, actual_fps, stdev)
     plt.plot(coverages, actual_fps)
     plt.xlabel('Coverage Threshold')
-    plt.ylabel('FPS difference')
+    plt.ylabel('FPS')
     plt.title('FPS based on coverage')
 
     plt.savefig('fpscov.png')
@@ -143,14 +143,14 @@ def main():
     root = str(pathlib.Path().resolve())
 
     # Get graph of FPS vs n
-    #fps_walk(root + '/coverage/fps')
-    #fps_result()
+    fps_walk(root + '/coverage/fps')
+    fps_result()
 
     cov = 0.1
 
-    ssim_reset(str(cov))
-    ssim_walk(root + '/coverage/img')
-    ssim_result()
+    #ssim_reset(str(cov))
+    #ssim_walk(root + '/coverage/img')
+    #ssim_result()
 
 if __name__ == "__main__":
     main()

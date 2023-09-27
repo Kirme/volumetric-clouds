@@ -21,7 +21,7 @@ def get_stddev():
     return stdev
 
 fps = [0, 0, 0, 0]
-thresholds = [2.0, 4.0, 8.0]
+thresholds = [0.0, 2.0, 4.0, 8.0]
 
 def get_fps(file, it):
     with open(file, newline='') as csvfile:
@@ -64,10 +64,11 @@ def fps_result():
     if (num_seeds != 0):
         actual_fps = [x / num_seeds for x in fps]
 
+    print(actual_fps)
     plt.errorbar(thresholds, actual_fps, stdev)
     plt.plot(thresholds, actual_fps)
     plt.xlabel('nth ray marched')
-    plt.ylabel('FPS difference')
+    plt.ylabel('FPS')
     plt.title('FPS based on n')
 
     #plt.xticks(np.arange(0.2, 1.2, 0.2))
@@ -129,10 +130,10 @@ def ssim_result():
     plt.savefig(str(pathlib.Path().resolve()) + '/graphs/pos-' + def_pos + '_ssim.png')
 
 def print_single_ssim(first, second, root):
-    first = cv2.imread(root + "/" + first)
-    second = cv2.imread(root + "/" + second)
+    first = cv2.imread(root + "/img/" + first)
+    second = cv2.imread(root + "/img/" + second)
 
-    print(metrics.structural_similarity(cv2.imread(first), cv2.imread(second), multichannel=True))
+    print(metrics.structural_similarity(first, second, multichannel=True))
 
 def ssim_reset(new_pos):
     global values, ssim, num_seeds, def_pos
@@ -147,8 +148,8 @@ def main():
     root = str(pathlib.Path().resolve())
 
     # Get graph of FPS vs n
-    #fps_walk(root + '/fps')
-    #fps_result()
+    fps_walk(root + '/fps')
+    fps_result()
 
     positions = 5
 
@@ -157,7 +158,7 @@ def main():
         #ssim_walk(root + '/img')
         #ssim_result()
 
-    print_single_ssim()
+    #print_single_ssim("314_8_0_4.png", "314_8_8_4.png", root)
 
 if __name__ == "__main__":
     main()

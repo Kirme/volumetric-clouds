@@ -2,7 +2,9 @@
 Author: Emrik Hydén
 
 This repo contains an implementation of a real-time volumetric cloud renderer in Unity using shaders. It was made for a Master's Thesis at KTH Royal Institute of Technology, Sweden. The repo also includes Python files for generating graphs of evaluation data generated within Unity.  
-This README describes both the features of the implementation, and what you can do with it.
+This README describes both the features of the implementation, and what you can do with it.  
+  
+The thesis to which this implementation belongs can be found [here](https://kth.diva-portal.org/smash/record.jsf?pid=diva2%3A1782871&dswid=-4798).
 
 ## Program Versions
 Unity version: 2021.3.16f1 (LTS)  
