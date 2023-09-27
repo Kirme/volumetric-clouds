@@ -5,22 +5,14 @@ using UnityEngine;
 [ExecuteAlways]
 public class Clouds : MonoBehaviour
 {
+    [Tooltip("Ray march shader")]
     [SerializeField] private Shader shader;
+    [Tooltip("Box that contains the clouds")]
     [SerializeField] private Transform cloudsBox;
     [Tooltip("Counters banding caused by long step lengths in ray marcher")]
     [SerializeField] private Texture2D blueNoise;
 
-    public enum March {
-        _2 = 2,
-        _4 = 4,
-        _8 = 8
-    }
-
-    [Tooltip("Should it interpolate every other pixel?")]
-    public bool useInterpolation;
-
-    [Tooltip("Only march every nth pixel")]
-    public March marchInterval;
+    [SerializeField] private Evaluation eval;
 
     [Header("Movement")]
     [SerializeField] private bool movement = false;
@@ -37,9 +29,6 @@ public class Clouds : MonoBehaviour
 
     [SerializeField] private Vector3 offset;
 
-    [Range(0, 1)]
-    [SerializeField] private float globalCoverage;
-
     [SerializeField] private Vector4 shapeNoiseWeights;
 
     [Header("Cloud Detail")]
@@ -55,6 +44,7 @@ public class Clouds : MonoBehaviour
     private Material material;
 
     private void Update() {
+        // Move clouds in x direction, if applicable
         if (movement) {
             offset.x += moveSpeed * Time.deltaTime;
         }
@@ -74,21 +64,26 @@ public class Clouds : MonoBehaviour
         // Get noise
         Noise noise = FindObjectOfType<Noise>();
 
+        // Set the noise textures in the ray march shader
         material.SetTexture("ShapeNoise", noise.GetShapeNoise());
         material.SetTexture("DetailNoise", noise.GetDetailNoise());
         material.SetTexture("blueNoise", blueNoise);
 
-        if (useInterpolation) {
+        material.SetTexture("_SourceTex", source); // Used for ray marching
+
+        if (eval.useInterpolation) { // If should interpolate, run the shader twice
             RunShaderTwice(source, destination);
-        } else {
+        } else { // Otherwise, just run shader
             Graphics.Blit(source, destination, material);
         }
     }
 
+    // Runs the ray march shader twice, to allow for interpolation
     private void RunShaderTwice(RenderTexture source, RenderTexture destination) {
+        // create a temp texture to hold result of first shader execution
         RenderTexture tmp = RenderTexture.GetTemporary(source.width, source.height, source.depth);
 
-        material.SetInt("isFirstIteration", 1);
+        material.SetInt("isFirstIteration", 1); // Parameter so shader knows current iteration
         Graphics.Blit(source, tmp, material);
 
         material.SetInt("isFirstIteration", 0);
@@ -97,11 +92,16 @@ public class Clouds : MonoBehaviour
         RenderTexture.ReleaseTemporary(tmp);
     }
 
+    // Set the different properties required for ray marching
     private void SetProperties() {
-        // Need to convert to int due to no support for setting a material's bool
-        int interpolate = useInterpolation ? 1 : 0;
+        // Need to convert bool to int due to no support for setting a material's bool
+        int interpolate = eval.useInterpolation ? 1 : 0;
         material.SetInt("useInterpolation", interpolate);
-        material.SetInt("marchInterval", (int) marchInterval);
+
+        material.SetInt("marchInterval", (int) eval.marchInterval);
+
+        material.SetFloat("maxPixelDiff", eval.maxPixelDifference);
+        material.SetInt("showInterpolation", eval.showInterpolation ? 1 : 0);
     
         // Shape
         material.SetVector("cloudOffset", offset);
@@ -109,7 +109,6 @@ public class Clouds : MonoBehaviour
         material.SetFloat("densityThreshold", densityThreshold);
         material.SetFloat("densityMultiplier", densityMultiplier);
         material.SetInt("numSteps", numSteps);
-        material.SetFloat("gc", globalCoverage);
         material.SetVector("shapeNoiseWeights", shapeNoiseWeights);
 
         // Detail

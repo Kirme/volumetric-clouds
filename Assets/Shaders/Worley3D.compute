@@ -11,7 +11,7 @@ int _Channel;
 StructuredBuffer<float3> _Points; // List of points to which we calculate distance
 RWTexture3D<float4> _Result;
 
-// Get the result if we are in the right color channel
+// Get the result for the right color channel
 float4 GetResult(float invertedMin) {
     float4 res = float4(
         _Channel == 0 ? invertedMin : 0,
@@ -33,6 +33,7 @@ void SetResult(float min, uint3 id)
     _Result[id] += GetResult(invertedMin);
 }
 
+// Make sure i is between 0 and _CellCount
 int WrapInt(int i) {
     if (i < 0)
         return i + _CellCount;
@@ -41,6 +42,7 @@ int WrapInt(int i) {
     return i;
 }
 
+// Wrap an entire cell, to ensure it is between 0 and _CellCount
 int3 WrapCell(int3 cell) {
     cell.x = WrapInt(cell.x);
     cell.y = WrapInt(cell.y);
@@ -53,9 +55,9 @@ int3 WrapCell(int3 cell) {
 void CSMain (uint3 id : SV_DispatchThreadID) {
     float3 pos = float3(id); // World position
     
-    float3 cellDiv = pos / (float) _CellResolution;
+    float3 cellDiv = pos / (float) _CellResolution; // Current cell, not rounded
     
-    float3 cellCoord = floor(cellDiv); // Cell identifier
+    float3 cellCoord = floor(cellDiv); // Cell identifier (rounded)
     float3 posInCell = float3(cellDiv - cellCoord); // Offset from cell
     
     float minDist = 1.0; // Holds minimum distance to a feature point

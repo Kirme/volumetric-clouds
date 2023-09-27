@@ -6,92 +6,90 @@ import matplotlib.pyplot as plt
 import numpy as np
 from skimage import metrics
 import cv2
+import statistics
+import re
 
-defFPS = [] # List of default FPS without optimization
+values = {}
+num_seeds = 0
 
-diff = [0, 0, 0]
-thresholds = [2.0, 4.0, 8.0]
-
-base = ''
-
-def get_diff(dir, it):
-    extension = 'csv'
-    os.chdir(dir)
-    result = glob.glob('*.{}'.format(extension))
+def get_stddev():
+    stdev = []
     
-    eval = result[0]
+    for key in values:
+        stdev.append(statistics.stdev(values[key]))
 
-    currentDiff = 0
+    return stdev
 
-    with open(eval, newline='') as csvfile:
+fps = [0, 0, 0, 0]
+thresholds = [0.0, 2.0, 4.0, 8.0]
+
+def get_fps(file, it):
+    with open(file, newline='') as csvfile:
         reader = csv.reader(csvfile, delimiter=',', quotechar='|')
-        next(reader)
-        i = 0
+        
+        sum = 0
+        amount = 0
         for row in reader:
-            currentDiff += float(row[2]) - defFPS[i]
-            i += 1
+            if not it in values:
+                values[it] = []
 
-        currentDiff /= i
+            values[it].append(int(row[0]))
+            sum += int(row[0])
+            amount += 1
 
-    diff[it] += currentDiff
-
-
-def get_def(dir):
-    extension = 'csv'
-    os.chdir(dir)
-    result = glob.glob('*.{}'.format(extension))
-    
-    eval = result[0]
-
-    with open(eval, newline='') as csvfile:
-        reader = csv.reader(csvfile, delimiter=',', quotechar='|')
-        next(reader)
-        for row in reader:
-            defFPS.append(float(row[2]))
-    
-def fps_reset():
-    defFPS.clear()
+        fps[it] += sum / amount
 
 def fps_walk(root):
+    global num_seeds
+
     it = 0
     for subdir, dirs, files in os.walk(root):
-        for dir in dirs:
-            if (dir != 'img'):
-                vol, cam, threshold = dir.split('_')
-                if (float(threshold) == 0.0):
-                    fps_reset()
-                    it = 0
-                    get_def(root + '/' + dir)
-                else:
-                    get_diff(root + '/' + dir, it)
-                    it += 1
+        for file in files:
+            sseed, dseed, interp, _ = re.split('_|.txt', file)
+            loc = root + '/' + file
+
+            if (float(interp) == 0.0):
+                num_seeds += 1
+                it = 0
+                get_fps(loc, it)
+            else:
+                it += 1
+                get_fps(loc, it)
 
 def fps_result():
-    actualDiff = [x / 4 for x in diff]
-    print(actualDiff)
+    actual_fps = fps
 
-    plt.plot(thresholds, actualDiff)
-    plt.xlabel('Thresholds')
-    plt.ylabel('FPS difference')
-    plt.title('Engine FPS based on pixel coherence threshold')
+    stdev = get_stddev()
 
-    plt.xticks(np.arange(0.2, 1.2, 0.2))
+    if (num_seeds != 0):
+        actual_fps = [x / num_seeds for x in fps]
 
-    plt.savefig('engine_fps.png')
+    print(actual_fps)
+    plt.errorbar(thresholds, actual_fps, stdev)
+    plt.plot(thresholds, actual_fps)
+    plt.xlabel('nth ray marched')
+    plt.ylabel('FPS')
+    plt.title('FPS based on n')
+
+    #plt.xticks(np.arange(0.2, 1.2, 0.2))
+
+    plt.savefig('fps.png')
 
 # SSIM
-
 ssim = [0.0, 0.0, 0.0]
-def_pos = "5"
-num_seeds = 0
+def_pos = "1"
 
 def ssim_diff(dir, def_dir, it):
     image = cv2.imread(dir)
     def_image = cv2.imread(def_dir)
 
     sim = metrics.structural_similarity(def_image, image, multichannel=True)
-    
     ssim[it] += sim
+
+    if not it in values:
+        values[it] = []
+
+    values[it].append(sim)
  
 def ssim_walk(root):
     global num_seeds
@@ -113,40 +111,54 @@ def ssim_walk(root):
                 else:
                     ssim_diff(img_dir, def_dir, it)
                     it += 1
+         
 
 def ssim_result():
     actual_ssim = ssim
 
-    print("Num: " + str(num_seeds))
+    stdev = get_stddev()
+
     if (num_seeds != 0):
         actual_ssim = [x / num_seeds for x in ssim]
 
-    plt.scatter(thresholds, actual_ssim)
+    plt.errorbar(thresholds, actual_ssim, stdev)
     plt.plot(thresholds, actual_ssim)
-    plt.xlabel('nth interpolated')
+    plt.xlabel('nth ray marched')
     plt.ylabel('SSIM Value')
     plt.title('SSIM')
-    
-    #plt.xticks(np.arange(0.2, 1.2, 0.2))
-    #plt.yticks(np.arange(0.0, 1.0, 0.2))
 
     plt.savefig(str(pathlib.Path().resolve()) + '/graphs/pos-' + def_pos + '_ssim.png')
 
 def print_single_ssim(first, second, root):
-    first = cv2.imread(root + "/" + first)
-    second = cv2.imread(root + "/" + second)
+    first = cv2.imread(root + "/img/" + first)
+    second = cv2.imread(root + "/img/" + second)
 
-    print(metrics.structural_similarity(cv2.imread(first), cv2.imread(second), multichannel=True))
+    print(metrics.structural_similarity(first, second, multichannel=True))
+
+def ssim_reset(new_pos):
+    global values, ssim, num_seeds, def_pos
+
+    values = {}
+    ssim = [0.0, 0.0, 0.0]
+    num_seeds = 0
+    def_pos = new_pos
+    plt.cla()
 
 def main():
-    root = str(pathlib.Path().resolve()) + '/img'
+    root = str(pathlib.Path().resolve())
 
-    # Get graph of FPS vs coherence threshold
-    #fps_walk(root)
-    #fps_result()
+    # Get graph of FPS vs n
+    fps_walk(root + '/fps')
+    fps_result()
 
-    ssim_walk(root)
-    ssim_result()
+    positions = 5
+
+    #for pos in range(1,positions+1):
+        #ssim_reset(str(pos))
+        #ssim_walk(root + '/img')
+        #ssim_result()
+
+    #print_single_ssim("314_8_0_4.png", "314_8_8_4.png", root)
 
 if __name__ == "__main__":
     main()
